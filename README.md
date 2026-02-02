@@ -84,7 +84,9 @@ https://invest.elitesolutionsnetwork.com/success.html
    vercel
    ```
 
-3. **Set Environment Variables** in Vercel Dashboard:
+3. **Set Environment Variables** in Vercel Dashboard (and locally):
+   - For **local dev**: copy `env.example` to `.env` and fill in values (same names as below).
+   - In **Vercel**: set these in Project → Settings → Environment Variables:
    - `SUPABASE_URL` - Your Supabase project URL
    - `SUPABASE_ANON_KEY` - Your Supabase anon key
    - `SUPABASE_SERVICE_ROLE_KEY` - Your Supabase service role key (secret)
