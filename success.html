@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Successful - Elite Investor Academy</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: linear-gradient(135deg, #0A2342 0%, #1F3F70 100%);
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+.container { max-width: 500px; width: 100%; }
+.icon { font-size: 4rem; margin-bottom: 1.5rem; animation: scaleIn 0.5s ease-out; }
+@keyframes scaleIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+h1 { font-size: 2rem; margin-bottom: 1rem; font-weight: 600; }
+.message { font-size: 1.1rem; color: rgba(255, 255, 255, 0.8); margin-bottom: 2rem; }
+.loader {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #FF7300;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 1rem auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.error {
+  background: rgba(220, 53, 69, 0.2);
+  border: 1px solid rgba(220, 53, 69, 0.5);
+  color: #ff6b6b;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-top: 2rem;
+  display: none;
+}
+.error.show { display: block; }
+.error h2 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+.error p { margin-bottom: 0.5rem; line-height: 1.6; }
+.error a { color: #FF7300; text-decoration: none; font-weight: 600; }
+.error a:hover { text-decoration: underline; }
+.login-prompt {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+  display: none;
+}
+.login-prompt.show { display: block; }
+.login-prompt p { margin-bottom: 1rem; }
+.login-prompt a { color: #d4af37; font-weight: 600; text-decoration: none; }
+.login-prompt a:hover { text-decoration: underline; }
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.25rem;
+  background: #FF7300;
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  margin: 0.25rem;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.btn:hover { background: #ff8500; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="icon">✅</div>
+  <h1>Payment Successful!</h1>
+  <p class="message" id="message">Verifying your payment...</p>
+  <div class="loader" id="loader"></div>
+
+  <div class="login-prompt" id="loginPrompt">
+    <p>Sign in or create an account with the <strong>same email</strong> you used for payment to claim your access.</p>
+    <p id="paymentEmail" style="color: rgba(255,255,255,.8); font-size: 0.95rem;"></p>
+    <p style="margin-top: 1rem;">
+      <a href="/login.html" id="loginLink">Log in</a> &nbsp;|&nbsp;
+      <a href="/magic-link.html" id="magicLink">Send magic link</a>
+    </p>
+    <p style="margin-top: 0.75rem;">
+      <button type="button" class="btn" id="sendMagicBtn">Send magic link to my email</button>
+    </p>
+  </div>
+
+  <div class="error" id="errorMsg">
+    <h2>⚠️ Setup Issue</h2>
+    <p id="errorText"></p>
+    <p style="margin-top: 1rem;">
+      <a href="/dashboard.html">Go to Dashboard</a> | 
+      <a href="mailto:support@elitesolutionsnetwork.com">Contact Support</a>
+    </p>
+  </div>
+</div>
+
+<script type="module">
+const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || 'https://YOUR_PROJECT_ID.supabase.co';
+const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.__SUPABASE_ANON_KEY__) || 'YOUR_PUBLIC_ANON_KEY';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function showError(msg) {
+  document.getElementById('errorMsg').classList.add('show');
+  document.getElementById('errorText').textContent = msg;
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('message').textContent = '';
+}
+
+function showLoginPrompt(paymentEmail) {
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('message').textContent = 'Your payment was successful.';
+  const prompt = document.getElementById('loginPrompt');
+  prompt.classList.add('show');
+  if (paymentEmail) {
+    document.getElementById('paymentEmail').textContent = 'Payment email: ' + paymentEmail;
+    const loginUrl = '/login.html?redirect=' + encodeURIComponent('/success.html' + window.location.search);
+    document.getElementById('loginLink').href = loginUrl;
+    document.getElementById('magicLink').href = '/magic-link.html?email=' + encodeURIComponent(paymentEmail);
+  }
+}
+
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const checkoutId = params.get('checkoutId') || params.get('checkout_id');
+  const transactionId = params.get('transactionId') || params.get('transaction_id');
+
+  const { data: { session } } = await supabase.auth.getSession();
+
+  // If no Square params, try claim flow for returning user
+  if (!checkoutId && !transactionId) {
+    if (!session) {
+      document.getElementById('message').textContent = 'Your payment was successful.';
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('loginPrompt').classList.add('show');
+      document.getElementById('paymentEmail').textContent = 'Sign in to claim access if you just paid.';
+      return;
+    }
+    const email = session.user.email;
+    if (!email) {
+      showError('No email on account. Please contact support.');
+      return;
+    }
+    document.getElementById('message').textContent = 'Claiming your access...';
+    try {
+      const res = await fetch('/api/members/claim?email=' + encodeURIComponent(email), {
+        method: 'GET',
+        headers: { 'Authorization': 'Bearer ' + session.access_token }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showError(data.error || 'Could not claim access. Please contact support.');
+        return;
+      }
+      document.getElementById('message').textContent = 'Access claimed! Redirecting to dashboard...';
+      setTimeout(() => { window.location.href = '/dashboard.html'; }, 1500);
+    } catch (err) {
+      showError('An error occurred. Please contact support.');
+    }
+    return;
+  }
+
+  // Verify payment with Square
+  const verifyUrl = '/api/square-payment-verify?' +
+    (checkoutId ? 'checkoutId=' + encodeURIComponent(checkoutId) : '') +
+    (transactionId ? (checkoutId ? '&' : '') + 'transactionId=' + encodeURIComponent(transactionId) : '');
+  let verifyData;
+  try {
+    const res = await fetch(verifyUrl);
+    verifyData = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showError(verifyData.error || 'Could not verify payment. Please contact support.');
+      return;
+    }
+  } catch (err) {
+    showError('Could not verify payment. Please contact support.');
+    return;
+  }
+
+  const paymentEmail = verifyData.email || null;
+
+  if (session) {
+    if (session.user.email && paymentEmail && session.user.email.toLowerCase() === paymentEmail.toLowerCase()) {
+      document.getElementById('message').textContent = 'Claiming your access...';
+      try {
+        const res = await fetch('/api/members/claim?email=' + encodeURIComponent(session.user.email), {
+          method: 'GET',
+          headers: { 'Authorization': 'Bearer ' + session.access_token }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showError(data.error || 'Could not claim access. Please contact support.');
+          return;
+        }
+        document.getElementById('message').textContent = 'Access claimed! Redirecting to dashboard...';
+        setTimeout(() => { window.location.href = '/dashboard.html'; }, 1500);
+      } catch (err) {
+        showError('An error occurred. Please contact support.');
+      }
+      return;
+    }
+    if (paymentEmail && session.user.email?.toLowerCase() !== paymentEmail.toLowerCase()) {
+      showError('Your account email does not match the payment email. Sign in with ' + paymentEmail + ' or contact support.');
+      return;
+    }
+  }
+
+  // Not logged in: show login prompt with payment email
+  showLoginPrompt(paymentEmail);
+
+  document.getElementById('sendMagicBtn')?.addEventListener('click', async () => {
+    if (!paymentEmail) return;
+    const btn = document.getElementById('sendMagicBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: paymentEmail,
+        options: { emailRedirectTo: window.location.origin + '/dashboard.html' }
+      });
+      if (error) throw error;
+      btn.textContent = 'Check your email — click the link to sign in';
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Send magic link to my email';
+      alert(err?.message || 'Failed to send magic link.');
+    }
+  });
+})();
+</script>
+</body>
+</html>

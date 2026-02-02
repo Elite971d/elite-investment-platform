@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Member Dashboard - Elite Investor Academy</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --navy:#0A2342;
+  --navy2:#1F3F70;
+  --orange:#FF7300;
+  --gold:#d4af37;
+  --muted:rgba(255,255,255,.75);
+  --card:rgba(255,255,255,.08);
+  --border:rgba(212,175,55,.28);
+  --bg1:#050507;
+  --bg2:#0d0d12;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Poppins,system-ui,Arial,sans-serif;
+  color:#fff;
+  background:
+    radial-gradient(circle at top, rgba(212,175,55,.10), transparent 45%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
+  min-height:100vh;
+}
+
+/* Top bar */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:14px;
+  padding:14px 18px;
+  background:rgba(0,0,0,.70);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.brand{
+  display:flex; align-items:center; gap:10px;
+}
+.brand .logo{
+  width:34px; height:34px; border-radius:10px;
+  background:linear-gradient(145deg, rgba(212,175,55,.28), rgba(255,255,255,.05));
+  border:1px solid var(--border);
+  box-shadow:0 0 22px rgba(212,175,55,.12);
+}
+.brand .name{
+  font-family:"Playfair Display",serif;
+  font-size:1.05rem;
+  line-height:1.1;
+}
+.actions{
+  display:flex; gap:10px; flex-wrap:wrap;
+}
+.btn{
+  border:1px solid var(--border);
+  background:linear-gradient(145deg, rgba(212,175,55,.22), rgba(255,255,255,.04));
+  color:#fff;
+  padding:10px 14px;
+  border-radius:14px;
+  cursor:pointer;
+  text-decoration:none;
+  display:inline-flex; align-items:center; gap:8px;
+  transition:.25s ease;
+  font-size:0.9rem;
+}
+.btn:hover{ box-shadow:0 0 18px rgba(212,175,55,.25); transform:translateY(-1px); }
+.btn.ghost{
+  background:transparent;
+}
+.container{
+  max-width:1200px;
+  margin:0 auto;
+  padding:26px 18px 80px;
+}
+
+/* Header */
+.hero{
+  border:1px solid var(--border);
+  background:linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+  border-radius:26px;
+  padding:22px;
+  backdrop-filter:blur(18px);
+}
+.hero-top{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;
+}
+.hero h1{
+  margin:0;
+  font-family:"Playfair Display",serif;
+  font-size:2rem;
+}
+.hero p{ margin:10px 0 0; color:var(--muted); max-width:860px; }
+.badge{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  color:var(--gold);
+  background:rgba(0,0,0,.35);
+  font-size:.9rem;
+  white-space:nowrap;
+}
+.badge strong{ color:#fff; font-weight:600; }
+
+/* Tabs */
+.tabs{
+  margin-top:18px;
+  display:flex; gap:10px; flex-wrap:wrap;
+}
+.tab-btn{
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  color:#fff;
+  cursor:pointer;
+  font-size:0.9rem;
+}
+.tab-btn.active{
+  border-color:var(--border);
+  background:linear-gradient(145deg, rgba(212,175,55,.18), rgba(255,255,255,.03));
+  box-shadow:0 0 16px rgba(212,175,55,.18);
+}
+
+/* Sections */
+.section{
+  margin-top:18px;
+  display:none;
+}
+.section.active{ display:block; }
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+  gap:16px;
+  margin-top:16px;
+}
+.card{
+  position:relative;
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+  overflow:hidden;
+  padding:16px;
+}
+.card h3{ margin:0 0 6px; font-size:1.05rem; }
+.card p{ margin:0; color:var(--muted); font-size:.92rem; }
+
+.tool-meta{
+  margin-top:10px;
+  display:flex; gap:8px; flex-wrap:wrap;
+}
+.pill{
+  font-size:.75rem;
+  padding:4px 10px;
+  border-radius:999px;
+  border:1px solid rgba(212,175,55,.28);
+  color:var(--gold);
+  background:rgba(0,0,0,.25);
+}
+.tool-actions{
+  margin-top:14px;
+  display:flex; gap:10px; flex-wrap:wrap;
+}
+.tool-link{
+  flex:1;
+  min-width:140px;
+  text-align:center;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(212,175,55,.28);
+  background:linear-gradient(145deg, rgba(212,175,55,.18), rgba(255,255,255,.03));
+  color:#fff;
+  text-decoration:none;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+}
+.tool-link:hover{ box-shadow:0 0 18px rgba(212,175,55,.25); }
+
+.locked{
+  opacity:.65;
+  position:relative;
+}
+.locked::after{
+  content:"🔒 Locked";
+  position:absolute;
+  top:14px; right:14px;
+  font-size:.75rem;
+  color:var(--gold);
+  border:1px solid rgba(212,175,55,.28);
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(0,0,0,.35);
+}
+.locked .tool-link{
+  pointer-events:none;
+  filter:grayscale(35%);
+  opacity:.75;
+}
+
+.upgrade{
+  margin-top:16px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.30);
+  border-radius:22px;
+  padding:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.upgrade .left{
+  color:var(--muted);
+}
+.upgrade .left strong{ color:#fff; }
+.small{ font-size:.9rem; color:var(--muted); }
+
+.loading{
+  text-align:center;
+  padding:3rem;
+  color:var(--muted);
+}
+</style>
+</head>
+
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo"></div>
+    <div class="name">Elite Investor Academy<br><span style="font-family:Poppins;font-size:.8rem;color:rgba(255,255,255,.75)">Member Dashboard</span></div>
+  </div>
+  <div class="actions">
+    <span id="userEmail" style="color:var(--muted);font-size:0.9rem;"></span>
+    <a class="btn ghost" href="index.html">← Home</a>
+    <a class="btn ghost" href="admin.html" id="adminLink" style="display:none;">⚙️ Admin</a>
+    <button class="btn" id="logoutBtn">Log out</button>
+  </div>
+</header>
+
+<main class="container">
+  <section class="hero">
+    <div class="hero-top">
+      <div>
+        <h1>Welcome back</h1>
+        <p>
+          Your access is based on your membership tier. Upgrade anytime to unlock more calculators and features.
+        </p>
+      </div>
+      <div class="badge">🔐 Tier: <strong id="tierLabel">Loading...</strong></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tools">Tools</button>
+      <button class="tab-btn" data-tab="academy">Academy</button>
+      <button class="tab-btn" data-tab="account">Account</button>
+    </div>
+  </section>
+
+  <!-- TOOLS -->
+  <section class="section active" id="tab-tools">
+    <div class="upgrade" id="expiredBanner" style="display:none; margin-bottom:16px; border-color:rgba(220,53,69,.5); background:rgba(220,53,69,.15);">
+      <div class="left">
+        <strong>Membership expired</strong><br>
+        <span class="small">Renew to restore access to calculators.</span>
+      </div>
+      <div class="actions">
+        <a class="btn" href="https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/5L6KRBG7XEBJWAM3QQTKTQRM" target="_blank">Renew Starter</a>
+        <a class="btn" href="https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/7YCAILWUHUOSLA4AB4FDON63" target="_blank">Renew Serious</a>
+        <a class="btn" href="https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/YY2K4SD2IEAQT7WT633D4ARV" target="_blank">Renew Elite</a>
+      </div>
+    </div>
+    <div class="grid" id="toolsGrid"></div>
+
+    <div class="upgrade" id="upgradeBox" style="display:none;">
+      <div class="left">
+        <strong>Unlock more tools</strong><br>
+        <span class="small">Upgrade your tier to access additional calculators and exports.</span>
+      </div>
+      <div class="actions">
+        <a class="btn" id="starterLink" href="#" target="_blank">Starter $29/mo</a>
+        <a class="btn" id="seriousLink" href="#" target="_blank">Serious $79/mo</a>
+        <a class="btn" id="eliteLink" href="#" target="_blank">Elite $149/mo</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACADEMY -->
+  <section class="section" id="tab-academy">
+    <div class="card">
+      <h3>Investor Academy Training</h3>
+      <p>Elite/Pro tier unlocks the full training library. Access comprehensive courses, templates, and resources.</p>
+      <div class="tool-actions" style="margin-top:12px;">
+        <a class="tool-link" href="academy.html" id="academyLink">Open Academy Page</a>
+        <a class="tool-link" href="mailto:support@elitesolutionsnetwork.com?subject=Investor%20Academy%20Access">Request Access</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACCOUNT -->
+  <section class="section" id="tab-account">
+    <div class="card">
+      <h3>Account Information</h3>
+      <p style="margin-top:10px;"><strong>Email:</strong> <span id="accountEmail">-</span></p>
+      <p style="margin-top:10px;"><strong>Membership Tier:</strong> <span id="accountTier">-</span></p>
+      <p style="margin-top:10px;"><strong>Member Since:</strong> <span id="memberSince">-</span></p>
+      <p style="margin-top:10px;"><strong>Role:</strong> <span id="accountRole">-</span></p>
+      <div class="tool-actions" style="margin-top:12px;">
+        <a class="tool-link" href="reset.html">Change Password</a>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h3>Team / Multi-seat</h3>
+      <p style="margin-top:8px;color:var(--muted);">Create a team to share calculator access. Owner billing; seat limits by tier.</p>
+      <div id="teamCreateForm" style="margin-top:12px;display:none;">
+        <input type="text" id="teamName" placeholder="Team name" class="search-input" style="max-width:240px;margin-right:8px;">
+        <input type="number" id="teamSeats" placeholder="Seats" min="1" value="5" class="search-input" style="max-width:80px;margin-right:8px;">
+        <button type="button" class="btn primary" id="createTeamBtn">Create Team</button>
+      </div>
+      <div id="myTeamsList" style="margin-top:12px;"></div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+// Load Supabase from CDN
+const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+
+// Get config
+const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 'YOUR_PUBLIC_ANON_KEY';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Tier configuration
+const TIER_RANK = { guest:0, starter:1, serious:2, elite:3, academy_starter:1, academy_pro:2, academy_premium:3 };
+const SQUARE_LINKS = {
+  starter: 'https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/5L6KRBG7XEBJWAM3QQTKTQRM',
+  serious: 'https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/7YCAILWUHUOSLA4AB4FDON63',
+  elite: 'https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/YY2K4SD2IEAQT7WT633D4ARV'
+};
+const TOOLS = [
+  { id:"offer", name:"Property Offer Calculator", minTier:"starter", pills:["Offer", "MAO", "Comps"] },
+  { id:"brrrr", name:"BRRRR Analyzer", minTier:"starter", pills:["BRRRR", "Refi", "ROI"] },
+  { id:"dealcheck", name:"DealCheck Analyzer", minTier:"serious", pills:["Flip", "Rental", "KPIs"] },
+  { id:"rehab", name:"Rehab Tracker", minTier:"serious", pills:["Budget", "Receipts", "Export"] },
+  { id:"pwt", name:"Property Walkthrough Tool", minTier:"serious", pills:["Scope", "Rooms", "Photos"] },
+  { id:"wholesale", name:"Wholesale Analyzer", minTier:"serious", pills:["Wholesale", "Fees", "Spread"] },
+  { id:"commercial", name:"Commercial Analyzer", minTier:"elite", pills:["NOI", "Cap Rate", "DSCR"] },
+  { id:"buybox", name:"Investor Buy Box", minTier:"elite", pills:["Criteria", "Markets", "Leads"] }
+];
+
+function prettyTier(t){
+  const names = {
+    guest: 'Guest',
+    starter: 'Starter Investor',
+    serious: 'Serious Investor',
+    elite: 'Elite / Pro',
+    academy_starter: 'Academy Starter',
+    academy_pro: 'Academy Pro',
+    academy_premium: 'Academy Premium'
+  };
+  return names[t] || t;
+}
+
+function canAccess(userTier, minTier) {
+  const userRank = TIER_RANK[userTier] || 0;
+  const requiredRank = TIER_RANK[minTier] || 999;
+  return userRank >= requiredRank;
+}
+
+// Check authentication and redirect if needed
+async function checkAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    window.location.href = '/login.html';
+    return null;
+  }
+  return session;
+}
+
+async function getUserProfile(userId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  return { data, error };
+}
+
+function hasValidEntitlement(entitlements) {
+  if (!entitlements || !entitlements.length) return false;
+  const now = new Date().toISOString();
+  return entitlements.some(function (e) {
+    return e.status === 'active' && (!e.expires_at || e.expires_at > now);
+  });
+}
+
+function renderTools(userTier, entitlements, expired) {
+  const grid = document.getElementById('toolsGrid');
+  grid.innerHTML = '';
+  const effectiveTier = expired ? 'guest' : userTier;
+  
+  document.getElementById('tierLabel').textContent = prettyTier(userTier);
+  document.getElementById('accountTier').textContent = prettyTier(userTier);
+  
+  document.getElementById('starterLink').href = SQUARE_LINKS.starter;
+  document.getElementById('seriousLink').href = SQUARE_LINKS.serious;
+  document.getElementById('eliteLink').href = SQUARE_LINKS.elite;
+  
+  const upgradeBox = document.getElementById('upgradeBox');
+  upgradeBox.style.display = (effectiveTier !== 'elite' && effectiveTier !== 'academy_premium') ? 'flex' : 'none';
+  
+  if (expired) {
+    var expBanner = document.getElementById('expiredBanner');
+    if (expBanner) expBanner.style.display = 'block';
+  }
+  
+  TOOLS.forEach(function (tool) {
+    const access = canAccess(effectiveTier, tool.minTier);
+    const toolHref = '/protected.html?tool=' + encodeURIComponent(tool.id);
+    const card = document.createElement('div');
+    card.className = 'card' + (access ? '' : ' locked');
+    
+    const pills = (tool.pills || []).map(function (p) { return '<span class="pill">' + p + '</span>'; }).join('');
+    const lockLine = access
+      ? '<span class="pill">Unlocked</span>'
+      : '<span class="pill">Requires: ' + prettyTier(tool.minTier) + '</span>';
+    
+    const link = access
+      ? '<a class="tool-link" href="' + toolHref + '" target="_blank" data-tool-id="' + tool.id + '">Open Tool →</a>'
+      : '<span class="tool-link" style="pointer-events:none;opacity:.75">Locked 🔒</span>';
+    card.innerHTML = '<h3>' + tool.name + '</h3>' +
+      '<p>' + (access ? 'Open tool in protected wrapper.' : 'Upgrade your membership to unlock this tool.') + '</p>' +
+      '<div class="tool-meta">' + lockLine + pills + '</div>' +
+      '<div class="tool-actions">' + link + '</div>';
+    grid.appendChild(card);
+  });
+}
+
+// Log tool usage to usage_logs (RLS: user can insert only for self)
+async function logToolUsage(userId, toolId) {
+  try {
+    await supabase.from('usage_logs').insert({ user_id: userId, tool: toolId });
+  } catch (e) { /* non-blocking */ }
+}
+
+// Initialize tabs
+function initTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+// Main initialization
+(async () => {
+  const session = await checkAuth();
+  if (!session) return;
+  
+  const user = session.user;
+  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('accountEmail').textContent = user.email;
+  
+  const { data: profile, error } = await getUserProfile(user.id);
+  const userTier = profile?.tier || 'guest';
+  document.getElementById('accountRole').textContent = profile?.role || 'user';
+  
+  if (profile?.role === 'admin') {
+    document.getElementById('adminLink').style.display = 'inline-flex';
+  }
+  
+  if (profile?.created_at) {
+    const date = new Date(profile.created_at);
+    document.getElementById('memberSince').textContent = date.toLocaleDateString();
+  } else {
+    document.getElementById('memberSince').textContent = '-';
+  }
+
+  document.getElementById('teamCreateForm').style.display = 'block';
+  const { data: myTeams } = await supabase.from('teams').select('id, name, seat_limit, created_at').eq('owner_id', user.id);
+  const teamsList = document.getElementById('myTeamsList');
+  if (myTeams && myTeams.length > 0) {
+    teamsList.innerHTML = '<p style="margin-bottom:8px;"><strong>My teams:</strong></p>' +
+      myTeams.map(function (t) {
+        return '<div class="info-item" style="margin-bottom:8px;">' + t.name + ' (seats: ' + t.seat_limit + ')</div>';
+      }).join('');
+  } else {
+    teamsList.innerHTML = '<p style="color:var(--muted);">No teams yet. Create one above.</p>';
+  }
+  document.getElementById('createTeamBtn').addEventListener('click', async function () {
+    const name = document.getElementById('teamName').value.trim();
+    const seats = parseInt(document.getElementById('teamSeats').value, 10) || 5;
+    if (!name) { alert('Enter a team name'); return; }
+    const { data: team, error: teamErr } = await supabase.from('teams').insert({ owner_id: user.id, name: name, seat_limit: seats }).select('id').single();
+    if (teamErr) { alert(teamErr.message || 'Failed to create team'); return; }
+    await supabase.from('team_members').insert({ team_id: team.id, user_id: user.id, role: 'owner' });
+    const { data: myTeams2 } = await supabase.from('teams').select('id, name, seat_limit').eq('owner_id', user.id);
+    teamsList.innerHTML = '<p style="margin-bottom:8px;"><strong>My teams:</strong></p>' +
+      (myTeams2 || []).map(function (t) { return '<div class="info-item" style="margin-bottom:8px;">' + t.name + ' (seats: ' + t.seat_limit + ')</div>'; }).join('');
+    document.getElementById('teamName').value = '';
+  });
+
+  var entitlements = [];
+  try {
+    const { data: ent } = await supabase
+      .from('entitlements')
+      .select('id, status, expires_at')
+      .eq('user_id', user.id);
+    entitlements = ent || [];
+  } catch (e) {}
+  var expired = userTier !== 'guest' && !hasValidEntitlement(entitlements) && entitlements.some(function (e) { return e.expires_at; });
+  renderTools(userTier, entitlements, expired);
+  
+  // Check academy access
+  const hasAcademyAccess = ['elite', 'academy_starter', 'academy_pro', 'academy_premium'].includes(userTier);
+  if (!hasAcademyAccess) {
+    document.getElementById('academyLink').style.opacity = '0.6';
+    document.getElementById('academyLink').style.pointerEvents = 'none';
+  }
+  
+  // Logout handler
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/login.html';
+  });
+  
+  initTabs();
+
+  // Delegate: on tool link click, log usage then allow navigation
+  document.getElementById('toolsGrid').addEventListener('click', function (e) {
+    const a = e.target.closest('a[data-tool-id]');
+    if (a && a.dataset.toolId) {
+      e.preventDefault();
+      logToolUsage(user.id, a.dataset.toolId).finally(function () {
+        window.open(a.href, '_blank');
+      });
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protected Calculator - Elite Investor Academy</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: #0A2342;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header h1 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.header .actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 115, 0, 0.2);
+  border: 1px solid rgba(255, 115, 0, 0.3);
+  color: #fff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn:hover {
+  background: rgba(255, 115, 0, 0.3);
+}
+
+.container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.loader {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #FF7300;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.error h2 {
+  font-size: 1.5rem;
+  color: #ff6b6b;
+}
+
+.error p {
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 500px;
+}
+
+.error .btn {
+  margin-top: 1rem;
+  background: #FF7300;
+  border-color: #FF7300;
+}
+
+.error .btn:hover {
+  background: #ff8500;
+}
+
+.calculator-frame {
+  flex: 1;
+  border: none;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+
+.calculator-frame.show {
+  display: block;
+}
+</style>
+</head>
+
+<body>
+<div class="header">
+  <h1>Elite Investor Academy - Calculator</h1>
+  <div class="actions">
+    <a href="/dashboard.html" class="btn">← Dashboard</a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="loading" id="loading">
+    <div class="loader"></div>
+    <p>Verifying access...</p>
+  </div>
+  
+  <div class="error" id="error" style="display: none;">
+    <h2>🔒 Access Restricted</h2>
+    <p id="errorMessage"></p>
+    <a href="/dashboard.html" class="btn">Go to Dashboard</a>
+    <a href="/index.html" class="btn" style="margin-top: 0.5rem;">View Pricing</a>
+  </div>
+  
+  <iframe 
+    id="calculatorFrame" 
+    class="calculator-frame" 
+    src=""
+    allow="fullscreen"
+    sandbox="allow-scripts allow-forms allow-same-origin"
+    title="Calculator"
+  ></iframe>
+</div>
+
+<script type="module">
+// Load Supabase from CDN
+const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+
+// Get config
+const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 'YOUR_PUBLIC_ANON_KEY';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Tool id -> path and required tier
+const TOOL_MAP = {
+  offer: { path: 'offer.html', tier: 'starter' },
+  brrrr: { path: 'brrrr.html', tier: 'starter' },
+  dealcheck: { path: 'dealcheck.html', tier: 'serious' },
+  rehab: { path: 'rehabtracker.html', tier: 'serious' },
+  rehabtracker: { path: 'rehabtracker.html', tier: 'serious' },
+  pwt: { path: 'pwt.html', tier: 'serious' },
+  wholesale: { path: 'wholesale.html', tier: 'serious' },
+  commercial: { path: 'commercial.html', tier: 'elite' },
+  buybox: { path: 'investorbuy-box.html', tier: 'elite' },
+  'investorbuy-box': { path: 'investorbuy-box.html', tier: 'elite' }
+};
+
+const TIER_RANK = {
+  guest: 0, starter: 1, serious: 2, elite: 3,
+  academy_starter: 1, academy_pro: 2, academy_premium: 3
+};
+
+const urlParams = new URLSearchParams(window.location.search);
+const toolId = urlParams.get('tool') || urlParams.get('calc');
+const toolConfig = toolId ? TOOL_MAP[toolId] : null;
+const calculatorUrl = toolConfig ? toolConfig.path : (urlParams.get('url') || urlParams.get('calc'));
+const requiredTier = toolConfig ? toolConfig.tier : (urlParams.get('tier') || 'starter');
+
+function canAccess(userTier, minTier) {
+  const userRank = TIER_RANK[userTier] || 0;
+  const requiredRank = TIER_RANK[minTier] ?? 999;
+  return userRank >= requiredRank;
+}
+
+function prettyTier(tier) {
+  const names = {
+    guest: 'Guest',
+    starter: 'Starter Investor',
+    serious: 'Serious Investor',
+    elite: 'Elite / Pro',
+    academy_starter: 'Academy Starter',
+    academy_pro: 'Academy Pro',
+    academy_premium: 'Academy Premium'
+  };
+  return names[tier] || tier;
+}
+
+// Main verification
+(async () => {
+  const loading = document.getElementById('loading');
+  const error = document.getElementById('error');
+  const errorMessage = document.getElementById('errorMessage');
+  const calculatorFrame = document.getElementById('calculatorFrame');
+  
+  try {
+    // Check authentication
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (!session) {
+      loading.style.display = 'none';
+      error.style.display = 'flex';
+      errorMessage.textContent = 'You must be logged in to access calculators. Please log in and try again.';
+      return;
+    }
+    
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+    
+    if (profileError || !profile) {
+      throw new Error('Unable to load profile');
+    }
+    
+    const userTier = profile.tier || 'guest';
+    
+    // Check tier access
+    if (!canAccess(userTier, requiredTier)) {
+      loading.style.display = 'none';
+      error.style.display = 'flex';
+      errorMessage.textContent = `This calculator requires ${prettyTier(requiredTier)} tier. Your current tier is ${prettyTier(userTier)}. Please upgrade to continue.`;
+      return;
+    }
+    
+    if (!calculatorUrl) {
+      loading.style.display = 'none';
+      error.style.display = 'flex';
+      errorMessage.textContent = 'No calculator specified. Use /protected.html?tool=offer (or brrrr, dealcheck, etc.).';
+      return;
+    }
+
+    // Optional: check active entitlements not expired (server is source of truth; this is UX)
+    const { data: entitlements } = await supabase
+      .from('entitlements')
+      .select('id, expires_at, status')
+      .eq('user_id', session.user.id)
+      .eq('status', 'active');
+    const now = new Date().toISOString();
+    const hasValidEntitlement = (entitlements || []).some(
+      (e) => !e.expires_at || e.expires_at > now
+    );
+    if (!hasValidEntitlement && (entitlements || []).length > 0) {
+      loading.style.display = 'none';
+      error.style.display = 'flex';
+      errorMessage.textContent = 'Your membership has expired. Please renew to continue.';
+      return;
+    }
+    
+    calculatorFrame.src = calculatorUrl;
+    loading.style.display = 'none';
+    calculatorFrame.classList.add('show');
+    
+  } catch (err) {
+    console.error('Error:', err);
+    loading.style.display = 'none';
+    error.style.display = 'flex';
+    errorMessage.textContent = err.message || 'An error occurred while verifying access. Please try again.';
+  }
+})();
+</script>
+
+</body>
+</html>
