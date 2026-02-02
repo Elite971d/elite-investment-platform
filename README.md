@@ -34,6 +34,8 @@ Production-ready investor membership platform with real authentication, tier gat
 3. Run schema in order:
    - Run `supabase/complete-schema.sql` (profiles, payments, RLS, triggers)
    - Run `supabase/migrations/001_membership_automation.sql` (entitlements, audit_log, webhook_events, updated RLS)
+   - Run `supabase/migrations/002_pending_entitlements.sql` (pending_entitlements)
+   - Run `supabase/migrations/003_usage_teams.sql` (usage_logs, teams, team_members, RLS)
 4. Set your first admin user:
    ```sql
    UPDATE profiles SET role = 'admin' WHERE email = 'your-email@example.com';
@@ -115,10 +117,19 @@ https://invest.elitesolutionsnetwork.com/success.html
 .
 ├── api/                    # Serverless API functions
 │   ├── square/webhook.ts   # Square webhook (signature verify, tier sync, audit)
+<<<<<<< HEAD
 │   ├── members/claim.ts    # Claim pending entitlements after login
 │   ├── admin/tier-override.ts   # Admin tier override + audit
 │   ├── admin/grant-entitlement.ts # Admin grant entitlement + audit
 │   ├── cron/expiring-entitlements.ts # Daily cron, expiry reminders (Resend or stub)
+=======
+│   ├── square-payment-verify.ts  # Post-payment verify (success page, tier + email)
+│   ├── members/claim.ts    # Claim pending entitlements after login
+│   ├── admin/tier-override.ts   # Admin tier override + audit
+│   ├── admin/grant-entitlement.ts # Admin grant entitlement + audit
+│   ├── cron/expiring-entitlements.ts # Daily cron, expiry reminders (Resend)
+│   ├── cron/subscription-renewal.ts # Monthly: downgrade >30d, renewal emails
+>>>>>>> master
 │   ├── square-payment.ts   # Verify Square payments (legacy)
 │   ├── create-user.ts      # Create user accounts (legacy)
 │   ├── update-payment.ts   # Create payment records (legacy)
@@ -138,9 +149,17 @@ https://invest.elitesolutionsnetwork.com/success.html
 │   └── migrations/
 │       └── 001_membership_automation.sql # entitlements, audit_log, webhook_events, RLS
 ├── index.html             # Landing page with pricing
+<<<<<<< HEAD
 ├── login.html             # Login page
 ├── reset-password.html    # Password reset
 ├── dashboard.html         # Member dashboard (protected)
+=======
+├── login.html             # Login (email/password), redirect → dashboard
+├── reset.html             # Password reset (request + update)
+├── magic-link.html        # Magic link login (signInWithOtp)
+├── reset-password.html    # Password reset (legacy)
+├── dashboard.html         # Member dashboard (protected, usage_logs on tool click)
+>>>>>>> master
 ├── admin.html             # Admin panel (admin only)
 ├── success.html           # Post-payment success handler
 ├── protected.html         # Calculator wrapper (protected)

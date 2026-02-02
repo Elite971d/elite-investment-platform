@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - Elite Investor Academy</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --navy:#0A2342;
+  --navy2:#1F3F70;
+  --orange:#FF7300;
+  --gold:#d4af37;
+  --muted:rgba(255,255,255,.75);
+  --card:rgba(255,255,255,.08);
+  --border:rgba(212,175,55,.28);
+  --bg1:#050507;
+  --bg2:#0d0d12;
+  --error:#ff6b6b;
+  --success:#51cf66;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Poppins,system-ui,Arial,sans-serif;
+  color:#fff;
+  background:
+    radial-gradient(circle at top, rgba(212,175,55,.10), transparent 45%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
+  min-height:100vh;
+}
+
+/* Top bar */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:14px;
+  padding:14px 18px;
+  background:rgba(0,0,0,.70);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.brand{
+  display:flex; align-items:center; gap:10px;
+}
+.brand .logo{
+  width:34px; height:34px; border-radius:10px;
+  background:linear-gradient(145deg, rgba(212,175,55,.28), rgba(255,255,255,.05));
+  border:1px solid var(--border);
+  box-shadow:0 0 22px rgba(212,175,55,.12);
+}
+.brand .name{
+  font-family:"Playfair Display",serif;
+  font-size:1.05rem;
+  line-height:1.1;
+}
+.actions{
+  display:flex; gap:10px; flex-wrap:wrap;
+}
+.btn{
+  border:1px solid var(--border);
+  background:linear-gradient(145deg, rgba(212,175,55,.22), rgba(255,255,255,.04));
+  color:#fff;
+  padding:10px 14px;
+  border-radius:14px;
+  cursor:pointer;
+  text-decoration:none;
+  display:inline-flex; align-items:center; gap:8px;
+  transition:.25s ease;
+  font-size:0.9rem;
+  border:none;
+}
+.btn:hover{ box-shadow:0 0 18px rgba(212,175,55,.25); transform:translateY(-1px); }
+.btn.primary{
+  background:var(--orange);
+  border-color:var(--orange);
+}
+.btn.danger{
+  background:rgba(220,53,69,0.3);
+  border-color:rgba(220,53,69,0.5);
+}
+.container{
+  max-width:1200px;
+  margin:0 auto;
+  padding:26px 18px 80px;
+}
+
+/* Header */
+.hero{
+  border:1px solid var(--border);
+  background:linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+  border-radius:26px;
+  padding:22px;
+  backdrop-filter:blur(18px);
+  margin-bottom:20px;
+}
+.hero h1{
+  margin:0;
+  font-family:"Playfair Display",serif;
+  font-size:2rem;
+}
+.hero p{ margin:10px 0 0; color:var(--muted); }
+
+/* Search section */
+.search-section{
+  border:1px solid var(--border);
+  background:linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+  border-radius:22px;
+  padding:22px;
+  margin-bottom:20px;
+}
+.search-section h2{
+  font-size:1.3rem;
+  margin-bottom:16px;
+  font-family:"Playfair Display",serif;
+}
+.search-form{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.search-input{
+  flex:1;
+  min-width:200px;
+  padding:12px 16px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.30);
+  color:#fff;
+  border-radius:14px;
+  font-size:0.95rem;
+}
+.search-input::placeholder{
+  color:rgba(255,255,255,.5);
+}
+.search-input:focus{
+  outline:none;
+  border-color:var(--border);
+  box-shadow:0 0 16px rgba(212,175,55,.18);
+}
+
+/* User card */
+.user-card{
+  border:1px solid var(--border);
+  background:linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+  border-radius:22px;
+  padding:22px;
+  margin-bottom:20px;
+  display:none;
+}
+.user-card.show{
+  display:block;
+}
+.user-info{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+  gap:16px;
+  margin-bottom:20px;
+}
+.info-item{
+  padding:12px;
+  background:rgba(0,0,0,.25);
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+}
+.info-label{
+  font-size:0.85rem;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+.info-value{
+  font-size:1.1rem;
+  font-weight:600;
+  color:var(--gold);
+}
+
+/* Tier selector */
+.tier-selector{
+  margin:20px 0;
+}
+.tier-selector label{
+  display:block;
+  margin-bottom:10px;
+  font-weight:600;
+}
+.tier-select{
+  width:100%;
+  padding:12px 16px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.30);
+  color:#fff;
+  border-radius:14px;
+  font-size:0.95rem;
+  cursor:pointer;
+}
+.tier-select:focus{
+  outline:none;
+  border-color:var(--border);
+  box-shadow:0 0 16px rgba(212,175,55,.18);
+}
+
+/* Messages */
+.message{
+  padding:14px 18px;
+  border-radius:14px;
+  margin-bottom:16px;
+  display:none;
+}
+.message.show{
+  display:block;
+}
+.message.error{
+  background:rgba(220,53,69,0.2);
+  border:1px solid rgba(220,53,69,0.5);
+  color:var(--error);
+}
+.message.success{
+  background:rgba(40,167,69,0.2);
+  border:1px solid rgba(40,167,69,0.5);
+  color:var(--success);
+}
+
+/* Loading */
+.loading{
+  text-align:center;
+  padding:3rem;
+  color:var(--muted);
+}
+.tabs{ display:flex; gap:10px; flex-wrap:wrap; }
+.tab-btn{
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  color:#fff;
+  cursor:pointer;
+  font-size:0.9rem;
+}
+.tab-btn.active{
+  border-color:var(--border);
+  background:linear-gradient(145deg, rgba(212,175,55,.18), rgba(255,255,255,.03));
+}
+.tab-content{ display:none; }
+.tab-content.active{ display:block; }
+.loader{
+  display:inline-block;
+  width:40px;
+  height:40px;
+  border:4px solid rgba(255,255,255,0.2);
+  border-top-color:var(--orange);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin-bottom:1rem;
+}
+@keyframes spin{
+  to{transform:rotate(360deg);}
+}
+
+/* Access denied */
+.access-denied{
+  text-align:center;
+  padding:4rem 2rem;
+}
+.access-denied h2{
+  font-size:2rem;
+  margin-bottom:1rem;
+  color:var(--error);
+}
+.access-denied p{
+  color:var(--muted);
+  margin-bottom:2rem;
+}
+</style>
+</head>
+
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo"></div>
+    <div class="name">Elite Investor Academy<br><span style="font-family:Poppins;font-size:.8rem;color:rgba(255,255,255,.75)">Admin Panel</span></div>
+  </div>
+  <div class="actions">
+    <span id="adminEmail" style="color:var(--muted);font-size:0.9rem;"></span>
+    <a href="dashboard.html" class="btn">← Dashboard</a>
+    <button class="btn" id="logoutBtn">Log out</button>
+  </div>
+</header>
+
+<main class="container">
+  <!-- Loading state -->
+  <div class="loading" id="loading">
+    <div class="loader"></div>
+    <p>Checking admin access...</p>
+  </div>
+
+  <!-- Access denied -->
+  <div class="access-denied" id="accessDenied" style="display:none;">
+    <h2>🔒 Access Denied</h2>
+    <p>You must be an administrator to access this panel.</p>
+    <a href="dashboard.html" class="btn primary">Go to Dashboard</a>
+  </div>
+
+  <!-- Admin panel -->
+  <div id="adminPanel" style="display:none;">
+    <section class="hero">
+      <h1>Admin Panel</h1>
+      <p>Manage user tiers, entitlements, and view audit log</p>
+    </section>
+
+    <div class="message" id="message"></div>
+
+    <div class="tabs" style="margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="tab-btn active" data-tab="search">User & Tier</button>
+      <button type="button" class="tab-btn" data-tab="audit">Audit Log</button>
+      <button type="button" class="tab-btn" data-tab="grant">Grant Entitlement</button>
+      <button type="button" class="tab-btn" data-tab="usage">Usage Analytics</button>
+    </div>
+
+    <!-- Tab: User & Tier -->
+    <section class="search-section tab-content active" id="tab-search">
+      <h2>Search User</h2>
+      <form class="search-form" id="searchForm">
+        <input type="email" class="search-input" id="emailInput" placeholder="Enter user email" required autocomplete="off">
+        <button type="submit" class="btn primary">Search</button>
+      </form>
+    </section>
+
+    <section class="user-card" id="userCard">
+      <h2 style="margin-bottom:16px;font-family:'Playfair Display',serif;">User Details</h2>
+      <div class="user-info">
+        <div class="info-item"><div class="info-label">Email</div><div class="info-value" id="userEmail">-</div></div>
+        <div class="info-item"><div class="info-label">Current Tier</div><div class="info-value" id="currentTier">-</div></div>
+        <div class="info-item"><div class="info-label">Role</div><div class="info-value" id="userRole">-</div></div>
+        <div class="info-item"><div class="info-label">Member Since</div><div class="info-value" id="memberSince">-</div></div>
+      </div>
+      <div class="tier-selector">
+        <label for="tierSelect">Update Tier</label>
+        <select id="tierSelect" class="tier-select">
+          <option value="guest">Guest</option>
+          <option value="starter">Starter Investor ($29/mo)</option>
+          <option value="serious">Serious Investor ($79/mo)</option>
+          <option value="elite">Elite / Pro ($149/mo)</option>
+          <option value="academy_starter">Academy Starter ($500)</option>
+          <option value="academy_pro">Academy Pro ($999)</option>
+          <option value="academy_premium">Academy Premium ($1499)</option>
+        </select>
+      </div>
+      <div class="tier-selector">
+        <label for="reasonInput">Reason (optional, for audit)</label>
+        <input type="text" class="search-input" id="reasonInput" placeholder="e.g. Support ticket #123">
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <button class="btn primary" id="saveBtn">Save Tier</button>
+        <button class="btn" id="cancelBtn">Cancel</button>
+      </div>
+    </section>
+
+    <!-- Tab: Audit Log -->
+    <section class="search-section tab-content" id="tab-audit" style="display:none;">
+      <h2>Audit Log</h2>
+      <div class="search-form" style="margin-bottom:16px;">
+        <select id="auditActionFilter" class="search-input" style="max-width:200px;">
+          <option value="">All actions</option>
+          <option value="tier_override">Tier override</option>
+          <option value="entitlement_grant">Entitlement grant</option>
+          <option value="entitlement_claim">Entitlement claim</option>
+          <option value="webhook_processed">Webhook processed</option>
+          <option value="login">Login</option>
+        </select>
+        <input type="email" class="search-input" id="auditTargetEmail" placeholder="Target email" style="max-width:220px;">
+        <input type="date" class="search-input" id="auditDateFrom" style="max-width:160px;">
+        <input type="date" class="search-input" id="auditDateTo" style="max-width:160px;">
+        <button type="button" class="btn primary" id="auditLoadBtn">Load</button>
+      </div>
+      <div class="audit-table-wrap" style="overflow-x:auto;">
+        <table class="tier-select" style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);">
+              <th style="text-align:left;padding:10px;">Date</th>
+              <th style="text-align:left;padding:10px;">Action</th>
+              <th style="text-align:left;padding:10px;">Actor</th>
+              <th style="text-align:left;padding:10px;">Target</th>
+              <th style="text-align:left;padding:10px;">Metadata</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody"></tbody>
+        </table>
+      </div>
+      <div class="loading" id="auditLoading" style="display:none;"><div class="loader"></div><p>Loading...</p></div>
+    </section>
+
+    <!-- Tab: Grant Entitlement -->
+    <section class="search-section tab-content" id="tab-grant" style="display:none;">
+      <h2>Grant Entitlement</h2>
+      <form class="search-form" id="grantForm" style="flex-direction:column;align-items:flex-start;gap:12px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+          <input type="email" class="search-input" id="grantEmail" placeholder="Target email" required style="min-width:220px;">
+          <select id="grantProductKey" class="search-input" style="min-width:200px;">
+            <option value="calc_starter">calc_starter (Starter)</option>
+            <option value="calc_serious">calc_serious (Serious)</option>
+            <option value="calc_elite">calc_elite (Elite)</option>
+            <option value="academy_starter">academy_starter</option>
+            <option value="academy_pro">academy_pro</option>
+            <option value="academy_premium">academy_premium</option>
+          </select>
+          <input type="datetime-local" class="search-input" id="grantExpiresAt" placeholder="Expires at (optional)" style="min-width:200px;">
+          <span style="color:var(--muted);font-size:0.9rem;">Leave expiry empty for no expiration</span>
+        </div>
+        <button type="submit" class="btn primary">Grant Entitlement</button>
+      </form>
+    </section>
+
+    <!-- Tab: Usage Analytics -->
+    <section class="search-section tab-content" id="tab-usage" style="display:none;">
+      <h2>Usage Analytics</h2>
+      <p style="color:var(--muted);margin-bottom:16px;">Tool usage per user, popularity, tier patterns. Admins can read usage_logs.</p>
+      <div style="margin-bottom:16px;">
+        <button type="button" class="btn primary" id="usageLoadBtn">Load Usage Stats</button>
+        <button type="button" class="btn" id="usageExportCsv">Export CSV</button>
+      </div>
+      <div id="usageStats" style="display:none;">
+        <table class="tier-select" style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);">
+              <th style="text-align:left;padding:10px;">Tool</th>
+              <th style="text-align:right;padding:10px;">Count</th>
+            </tr>
+          </thead>
+          <tbody id="usageTableBody"></tbody>
+        </table>
+        <p style="margin-top:12px;color:var(--muted);font-size:0.9rem;" id="usageTotal"></p>
+      </div>
+      <div class="loading" id="usageLoading" style="display:none;"><div class="loader"></div><p>Loading...</p></div>
+    </section>
+  </div>
+</main>
+
+<script type="module">
+// Load Supabase from CDN
+const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+
+// Get config
+const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 'YOUR_PUBLIC_ANON_KEY';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Tier display names
+function prettyTier(tier) {
+  const names = {
+    guest: 'Guest',
+    starter: 'Starter Investor',
+    serious: 'Serious Investor',
+    elite: 'Elite / Pro',
+    academy_starter: 'Academy Starter',
+    academy_pro: 'Academy Pro',
+    academy_premium: 'Academy Premium'
+  };
+  return names[tier] || tier;
+}
+
+// Check if user is admin
+async function isAdmin(userId) {
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single();
+  
+  return profile?.role === 'admin';
+}
+
+// Show message
+function showMessage(text, type = 'success') {
+  const message = document.getElementById('message');
+  message.textContent = text;
+  message.className = `message ${type} show`;
+  setTimeout(() => {
+    message.classList.remove('show');
+  }, 5000);
+}
+
+// Main initialization
+(async () => {
+  const loading = document.getElementById('loading');
+  const accessDenied = document.getElementById('accessDenied');
+  const adminPanel = document.getElementById('adminPanel');
+  
+  // Check authentication
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (!session) {
+    loading.style.display = 'none';
+    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+    return;
+  }
+  
+  // Check admin role
+  const userIsAdmin = await isAdmin(session.user.id);
+  
+  if (!userIsAdmin) {
+    loading.style.display = 'none';
+    accessDenied.style.display = 'block';
+    return;
+  }
+  
+  // User is admin - show panel
+  loading.style.display = 'none';
+  adminPanel.style.display = 'block';
+  document.getElementById('adminEmail').textContent = session.user.email;
+  
+  // Search form handler
+  document.getElementById('searchForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('emailInput').value.trim().toLowerCase();
+    
+    if (!email) return;
+    
+    // Search for user by email
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', email)
+      .single();
+    
+    if (error || !profile) {
+      showMessage('User not found. Please check the email address.', 'error');
+      document.getElementById('userCard').classList.remove('show');
+      return;
+    }
+    
+    // Show user card
+    document.getElementById('userEmail').textContent = profile.email;
+    document.getElementById('currentTier').textContent = prettyTier(profile.tier || 'guest');
+    document.getElementById('userRole').textContent = profile.role || 'user';
+    
+    if (profile.created_at) {
+      const date = new Date(profile.created_at);
+      document.getElementById('memberSince').textContent = date.toLocaleDateString();
+    } else {
+      document.getElementById('memberSince').textContent = '-';
+    }
+    
+    // Set tier selector
+    document.getElementById('tierSelect').value = profile.tier || 'guest';
+    
+    document.getElementById('userCard').classList.add('show');
+    showMessage('User found!');
+  });
+  
+  // Save tier via API (writes audit_log)
+  document.getElementById('saveBtn').addEventListener('click', async () => {
+    const email = document.getElementById('emailInput').value.trim().toLowerCase();
+    const newTier = document.getElementById('tierSelect').value;
+    const reason = document.getElementById('reasonInput').value.trim() || null;
+    if (!email) {
+      showMessage('Please search for a user first.', 'error');
+      return;
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    try {
+      const res = await fetch('/api/admin/tier-override', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+        body: JSON.stringify({ target_email: email, new_tier: newTier, reason })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to update tier', 'error');
+        return;
+      }
+      document.getElementById('currentTier').textContent = prettyTier(newTier);
+      showMessage('Tier updated and audit log written.', 'success');
+    } catch (e) {
+      showMessage('Request failed.', 'error');
+    }
+  });
+
+  document.getElementById('cancelBtn').addEventListener('click', () => {
+    document.getElementById('userCard').classList.remove('show');
+    document.getElementById('emailInput').value = '';
+  });
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      const el = document.getElementById('tab-' + tab);
+      if (el) { el.classList.add('active'); el.style.display = 'block'; }
+      document.querySelectorAll('.tab-content').forEach(s => {
+        if (!s.classList.contains('active')) s.style.display = 'none';
+      });
+    });
+  });
+
+  // Audit log load (RLS: admins can read)
+  document.getElementById('auditLoadBtn').addEventListener('click', async () => {
+    const action = document.getElementById('auditActionFilter').value;
+    const targetEmail = document.getElementById('auditTargetEmail').value.trim();
+    const dateFrom = document.getElementById('auditDateFrom').value;
+    const dateTo = document.getElementById('auditDateTo').value;
+    const tbody = document.getElementById('auditTableBody');
+    const loadingEl = document.getElementById('auditLoading');
+    tbody.innerHTML = '';
+    loadingEl.style.display = 'block';
+    let query = supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(200);
+    if (action) query = query.eq('action', action);
+    if (targetEmail) query = query.eq('target_email', targetEmail);
+    if (dateFrom) query = query.gte('created_at', dateFrom + 'T00:00:00Z');
+    if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59Z');
+    const { data: rows, error } = await query;
+    loadingEl.style.display = 'none';
+    if (error) {
+      showMessage('Failed to load audit log: ' + error.message, 'error');
+      return;
+    }
+    (rows || []).forEach(r => {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255,255,255,.08)';
+      tr.innerHTML = '<td style="padding:10px;">' + new Date(r.created_at).toLocaleString() + '</td>' +
+        '<td style="padding:10px;">' + (r.action || '-') + '</td>' +
+        '<td style="padding:10px;">' + (r.actor_email || r.actor_user_id || '-') + '</td>' +
+        '<td style="padding:10px;">' + (r.target_email || r.target_user_id || '-') + '</td>' +
+        '<td style="padding:10px;max-width:280px;overflow:hidden;text-overflow:ellipsis;">' + (r.metadata ? JSON.stringify(r.metadata) : '-') + '</td>';
+      tbody.appendChild(tr);
+    });
+  });
+
+  // Grant entitlement
+  document.getElementById('grantForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('grantEmail').value.trim().toLowerCase();
+    const product_key = document.getElementById('grantProductKey').value;
+    const expiresVal = document.getElementById('grantExpiresAt').value;
+    const expires_at = expiresVal ? new Date(expiresVal).toISOString() : null;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    try {
+      const res = await fetch('/api/admin/grant-entitlement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+        body: JSON.stringify({ target_email: email, product_key, expires_at })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to grant entitlement', 'error');
+        return;
+      }
+      showMessage('Entitlement granted.', 'success');
+      document.getElementById('grantEmail').value = '';
+      document.getElementById('grantExpiresAt').value = '';
+    } catch (err) {
+      showMessage('Request failed.', 'error');
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/login.html';
+  });
+
+  // Usage analytics (RLS: admins can select usage_logs)
+  let usageRows = [];
+  document.getElementById('usageLoadBtn').addEventListener('click', async () => {
+    const tbody = document.getElementById('usageTableBody');
+    const loadingEl = document.getElementById('usageLoading');
+    const statsEl = document.getElementById('usageStats');
+    tbody.innerHTML = '';
+    loadingEl.style.display = 'block';
+    statsEl.style.display = 'none';
+    const { data: rows, error } = await supabase
+      .from('usage_logs')
+      .select('tool, created_at')
+      .order('created_at', { ascending: false })
+      .limit(5000);
+    loadingEl.style.display = 'none';
+    if (error) {
+      showMessage('Failed to load usage: ' + error.message, 'error');
+      return;
+    }
+    usageRows = rows || [];
+    const byTool = {};
+    usageRows.forEach(r => {
+      byTool[r.tool] = (byTool[r.tool] || 0) + 1;
+    });
+    const sorted = Object.entries(byTool).sort((a, b) => b[1] - a[1]);
+    sorted.forEach(([tool, count]) => {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255,255,255,.08)';
+      tr.innerHTML = '<td style="padding:10px;">' + tool + '</td><td style="padding:10px;text-align:right;">' + count + '</td>';
+      tbody.appendChild(tr);
+    });
+    document.getElementById('usageTotal').textContent = 'Total events: ' + usageRows.length + ' (last 5000)';
+    statsEl.style.display = 'block';
+  });
+
+  document.getElementById('usageExportCsv').addEventListener('click', () => {
+    if (usageRows.length === 0) {
+      showMessage('Load usage first.', 'error');
+      return;
+    }
+    const headers = ['tool', 'created_at'];
+    const csv = [headers.join(',')].concat(
+      usageRows.map(r => [r.tool, r.created_at].join(','))
+    ).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'usage_logs_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showMessage('CSV exported.');
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elite Investment Starter Program</title>
+
+<link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:#fff;color:#0A2342;line-height:1.6;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer}
+
+/* HERO */
+.hero{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  background:linear-gradient(135deg,#0A2342,#1F3F70);
+  color:#fff;
+  padding:2rem;
+}
+.hero h1{font-size:2.8rem;margin-bottom:1rem}
+.hero p{font-size:1.2rem;margin-bottom:2rem}
+.hero button{
+  padding:1rem 2rem;
+  font-size:1.1rem;
+  border:none;
+  background:#FF7300;
+  color:#fff;
+  border-radius:6px;
+}
+
+/* SECTIONS */
+section{padding:4rem 1rem}
+h2{text-align:center;font-size:2rem;margin-bottom:2rem}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:2rem;
+  max-width:1100px;
+  margin:0 auto;
+}
+.card{
+  background:#f9f9f9;
+  padding:2rem;
+  border-radius:10px;
+  text-align:center;
+  transition:.3s;
+}
+.card:hover{
+  transform:translateY(-8px);
+  box-shadow:0 10px 20px rgba(0,0,0,.15)
+}
+.card ul{text-align:left;margin-top:1rem}
+
+/* BUTTON */
+.btn{
+  background:#FF7300;
+  color:#fff;
+  padding:.8rem 1.5rem;
+  border-radius:5px;
+  display:inline-block;
+  margin-top:1rem;
+}
+
+/* PRICING TABS */
+.pricing-tabs{
+  max-width:1100px;
+  margin:0 auto;
+}
+.pricing-tab-buttons{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:2rem;
+}
+.pricing-tab-btn{
+  padding:10px 18px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  background:#f5f5f5;
+}
+.pricing-tab-btn.active{
+  background:#FF7300;
+  color:#fff;
+  border-color:#FF7300;
+}
+.pricing-tab{display:none}
+.pricing-tab.active{display:block}
+
+/* COUNTDOWN */
+.countdown{text-align:center;font-size:1.5rem;color:#FF7300}
+
+/* QUOTE */
+.quote-section{
+  background:#000;
+  text-align:center;
+  padding:4rem 1rem;
+}
+.holographic-text{
+  font-size:2rem;
+  font-weight:bold;
+  background:linear-gradient(90deg,#FF7300,#FFD700,#FF7300);
+  background-size:400% 400%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:holo 4s infinite;
+}
+@keyframes holo{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+/* FOOTER */
+footer{
+  background:#0A2342;
+  color:#fff;
+  text-align:center;
+  padding:2rem 1rem;
+}
+
+@media(max-width:768px){
+  .hero h1{font-size:2rem}
+  .hero p{font-size:1rem}
+}
+</style>
+</head>
+
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <lottie-player src="https://assets6.lottiefiles.com/packages/lf20_jbrw3hcz.json"
+    background="transparent" speed="1" loop autoplay style="width:140px"></lottie-player>
+  <h1 data-aos="fade-down">Start Your Real Estate Journey</h1>
+  <p data-aos="fade-up">Elite tools, calculators, and training — built for real investors</p>
+  <button onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">
+    View Pricing
+  </button>
+</section>
+
+<!-- COUNTDOWN -->
+<section>
+  <h2>Program Launch Countdown</h2>
+  <div class="countdown" id="countdown"></div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+<h2>Pricing & Access</h2>
+
+<div class="pricing-tabs">
+
+<div class="pricing-tab-buttons">
+  <button class="pricing-tab-btn active" onclick="openPricingTab(this,'tools')">🧮 Calculator Membership</button>
+  <button class="pricing-tab-btn" onclick="openPricingTab(this,'academy')">🎓 Investor Academy</button>
+</div>
+
+<!-- CALCULATOR TIERS -->
+<div class="pricing-tab active" id="tools">
+  <div class="cards">
+    <div class="card">
+      <h3>Starter Investor</h3>
+      <p><strong>$29 / month</strong></p>
+      <ul>
+        <li>Property Offer Calculator</li>
+        <li>BRRRR Analyzer</li>
+      </ul>
+      <a href="https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/5L6KRBG7XEBJWAM3QQTKTQRM" class="btn">Start Monthly</a>
+    </div>
+
+    <div class="card">
+      <h3>Serious Investor</h3>
+      <p><strong>$79 / month</strong></p>
+      <ul>
+        <li>All calculators</li>
+        <li>Rehab Tracker</li>
+        <li>PWT</li>
+        <li>Save & export deals</li>
+      </ul>
+      <a href="https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/7YCAILWUHUOSLA4AB4FDON63" class="btn">Upgrade</a>
+    </div>
+
+    <div class="card">
+      <h3>Elite / Pro</h3>
+      <p><strong>$149 / month</strong></p>
+      <ul>
+        <li>Everything unlocked</li>
+        <li>Investor Academy access</li>
+        <li>Deal templates</li>
+        <li>Priority updates</li>
+      </ul>
+      <a href="https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/YY2K4SD2IEAQT7WT633D4ARV" class="btn">Go Elite</a>
+    </div>
+  </div>
+</div>
+
+<!-- ACADEMY TIERS -->
+<div class="pricing-tab" id="academy">
+  <div class="cards">
+    <div class="card">
+      <h3>Starter</h3>
+      <p><strong>$500</strong></p>
+      <ul>
+        <li>Core modules</li>
+        <li>Templates</li>
+      </ul>
+      <a href="https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/TKG3QM5DHNVMYVO7D54YUS7G" class="btn">Enroll</a>
+    </div>
+
+    <div class="card">
+      <h3>Pro</h3>
+      <p><strong>$999</strong></p>
+      <ul>
+        <li>Advanced analysis</li>
+        <li>Rehab tools</li>
+      </ul>
+      <a href="https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/EZ5TGODGBBAHDZP6WY7JCFW7" class="btn">Enroll</a>
+    </div>
+
+    <div class="card">
+      <h3>Premium</h3>
+      <p><strong>$1499</strong></p>
+      <ul>
+        <li>Live coaching</li>
+        <li>Deal reviews</li>
+      </ul>
+      <a href="https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/OYTJWURAXGUWHPHPPMNOYYKI" class="btn">Enroll</a>
+    </div>
+  </div>
+</div>
+
+</div>
+</section>
+
+<!-- QUOTE -->
+<section class="quote-section">
+  <div class="holographic-text">“We build more than homes, we build opportunities.”</div>
+</section>
+
+<footer>
+  <p>support@elitesolutionsnetwork.com | 214-800-9779</p>
+  <p style="margin-top:0.5rem;">
+    <a href="login.html" style="color:#FF7300;text-decoration:none;">Member Login</a>
+    <span style="margin:0 0.5rem;color:rgba(255,255,255,0.3)">•</span>
+    <a href="dashboard.html" style="color:#FF7300;text-decoration:none;">Dashboard</a>
+  </p>
+  <p>© 2025 Elite Solutions Network</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script>
+AOS.init({once:true});
+
+function openPricingTab(btn,id){
+  document.querySelectorAll('.pricing-tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.pricing-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+// Countdown
+const launchDate=new Date();
+launchDate.setDate(launchDate.getDate()+10);
+const el=document.getElementById('countdown');
+setInterval(()=>{
+  const d=launchDate-new Date();
+  const days=Math.floor(d/(1000*60*60*24));
+  el.textContent=days+" days remaining";
+},1000);
+</script>
+
+</body>
+</html>
