@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "framework": "other",
   "builds": [
     {
       "src": "api/**/*.ts",
