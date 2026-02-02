@@ -117,27 +117,21 @@ https://invest.elitesolutionsnetwork.com/success.html
 .
 ├── api/                    # Serverless API functions
 │   ├── square/webhook.ts   # Square webhook (signature verify, tier sync, audit)
-<<<<<<< HEAD
-│   ├── members/claim.ts    # Claim pending entitlements after login
-│   ├── admin/tier-override.ts   # Admin tier override + audit
-│   ├── admin/grant-entitlement.ts # Admin grant entitlement + audit
-│   ├── cron/expiring-entitlements.ts # Daily cron, expiry reminders (Resend or stub)
-=======
 │   ├── square-payment-verify.ts  # Post-payment verify (success page, tier + email)
 │   ├── members/claim.ts    # Claim pending entitlements after login
 │   ├── admin/tier-override.ts   # Admin tier override + audit
 │   ├── admin/grant-entitlement.ts # Admin grant entitlement + audit
 │   ├── cron/expiring-entitlements.ts # Daily cron, expiry reminders (Resend)
 │   ├── cron/subscription-renewal.ts # Monthly: downgrade >30d, renewal emails
->>>>>>> master
 │   ├── square-payment.ts   # Verify Square payments (legacy)
 │   ├── create-user.ts      # Create user accounts (legacy)
 │   ├── update-payment.ts   # Create payment records (legacy)
 │   └── update-profile.ts   # Update user profiles (legacy)
 ├── dealcheck/             # DealCheck subdomain files
 │   ├── protected.html     # Calculator wrapper (SSO)
+│   ├── auth-guard.js      # Session + tier check, redirect to pricing
 │   ├── supabase.js        # Shared Supabase client
-│   └── tier-guard.js     # Tier utilities
+│   └── tier-guard.js      # Tier utilities
 ├── js/                     # Client-side utilities
 │   ├── config.js          # Configuration
 │   ├── supabase-client.js # Supabase client helpers
@@ -147,19 +141,15 @@ https://invest.elitesolutionsnetwork.com/success.html
 ├── supabase/
 │   ├── complete-schema.sql # Base schema (profiles, payments, RLS)
 │   └── migrations/
-│       └── 001_membership_automation.sql # entitlements, audit_log, webhook_events, RLS
+│       ├── 001_membership_automation.sql # entitlements, audit_log, webhook_events, RLS
+│       ├── 002_pending_entitlements.sql  # pending_entitlements
+│       └── 003_usage_teams.sql           # usage_logs, teams, team_members, RLS
 ├── index.html             # Landing page with pricing
-<<<<<<< HEAD
-├── login.html             # Login page
-├── reset-password.html    # Password reset
-├── dashboard.html         # Member dashboard (protected)
-=======
 ├── login.html             # Login (email/password), redirect → dashboard
 ├── reset.html             # Password reset (request + update)
 ├── magic-link.html        # Magic link login (signInWithOtp)
 ├── reset-password.html    # Password reset (legacy)
 ├── dashboard.html         # Member dashboard (protected, usage_logs on tool click)
->>>>>>> master
 ├── admin.html             # Admin panel (admin only)
 ├── success.html           # Post-payment success handler
 ├── protected.html         # Calculator wrapper (protected)

@@ -41,7 +41,7 @@ function resolveRedirect(fallback = '/dashboard.html') {
 export async function requireAuth() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
-    const loginUrl = '/auth/login.html';
+    const loginUrl = '/login.html';
     const redirect = encodeURIComponent(window.location.pathname + window.location.search);
     window.location.replace(redirect ? `${loginUrl}?redirect=${redirect}` : loginUrl);
     return false;
@@ -74,7 +74,7 @@ export async function getCurrentUser() {
  */
 export async function logout() {
   await supabase.auth.signOut();
-  window.location.replace('/auth/login.html');
+  window.location.replace('/login.html');
 }
 
 /**
@@ -106,7 +106,7 @@ export async function sendMagicLink(email) {
  * @returns {Promise<{ data?: object, error?: import('@supabase/supabase-js').AuthError }>}
  */
 export async function requestPasswordReset(email) {
-  const redirectTo = 'https://invest.elitesolutionsnetwork.com/auth/reset.html';
+  const redirectTo = 'https://invest.elitesolutionsnetwork.com/reset.html';
   return supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
 }
 

@@ -16,7 +16,7 @@ Replace `your-email@example.com` with your actual email address.
 
 ### Step 2: Access the Admin Panel
 
-1. Go to: `https://invest.elitesolutionsnetwork.com/admin/admin.html`
+1. Go to: `https://invest.elitesolutionsnetwork.com/admin.html`
 2. Log in with your admin account
 3. Admin panel will load automatically
 
@@ -216,13 +216,13 @@ Need help?
 
 3. **Workflow optimization:**
    - Keep admin panel open in separate tab
-   - Bookmark `/admin/admin.html` for quick access
+   - Bookmark `/admin.html` for quick access
    - Review audit log at end of each day
 
 ## 📝 Checklist for New Admins
 
 - [ ] Admin role set in database
-- [ ] Can access `/admin/admin.html`
+- [ ] Can access `/admin.html`
 - [ ] Can search for users
 - [ ] Can change a test user's tier
 - [ ] Can view audit log

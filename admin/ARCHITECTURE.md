@@ -7,7 +7,7 @@
 │                        USER BROWSER                              │
 │                                                                   │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │                     /admin/admin.html                      │  │
+│  │                     /admin.html                      │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌──────────────────┐  │  │
 │  │  │ User Search │  │ Tier Update │  │ Audit Log Viewer │  │  │
 │  │  └─────────────┘  └─────────────┘  └──────────────────┘  │  │
@@ -19,7 +19,7 @@
 │                               │                                  │
 │                               ▼                                  │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │                     /admin/admin.js                        │  │
+│  │                     (admin.html)                        │  │
 │  │  ┌──────────────────────────────────────────────────────┐ │  │
 │  │  │ Security Layer 1: Client-Side Protection             │ │  │
 │  │  │ • Session verification                                │ │  │
@@ -78,7 +78,7 @@
 ### 1. Page Load & Authentication
 
 ```
-User navigates to /admin/admin.html
+User navigates to /admin.html
           │
           ▼
     admin.js loads
@@ -546,8 +546,8 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...  # SECRET!
 
 ## Deployment Checklist
 
-- [ ] Upload `/admin/admin.html` to hosting
-- [ ] Upload `/admin/admin.js` to hosting  
+- [ ] Upload `/admin.html` to hosting
+- [ ] Upload `(admin.html)` to hosting  
 - [ ] Deploy API endpoints to Vercel
 - [ ] Set environment variables in Vercel
 - [ ] Run database migrations

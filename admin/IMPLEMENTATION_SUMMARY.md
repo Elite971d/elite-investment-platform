@@ -6,14 +6,14 @@
 
 ### Files Created
 
-1. **admin/admin.html** (370 lines)
+1. **admin.html (root)** (370 lines)
    - Modern, responsive admin UI
    - Three-tab interface (User & Tier, Audit Log, Grant Entitlement)
    - Consistent styling with existing platform design
    - Access denied screen for non-admins
    - Loading states and error handling
 
-2. **admin/admin.js** (520 lines)
+2. **(admin logic in root admin.html)** (520 lines)
    - Complete client-side logic
    - Comprehensive security comments
    - All required features implemented
@@ -265,7 +265,7 @@ From `supabase/migrations/001_membership_automation.sql`:
 ### For Developers
 
 1. Deploy files to production
-2. Access at `/admin/admin.html`
+2. Access at `/admin.html`
 3. Must be logged in with admin role
 
 ### For Setting Up First Admin

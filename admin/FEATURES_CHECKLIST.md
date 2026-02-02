@@ -10,8 +10,8 @@ This document verifies that all requested features have been implemented.
 
 ### Files Created
 
-- ✅ `/admin/admin.html` - Admin UI (370 lines)
-- ✅ `/admin/admin.js` - Admin logic (541 lines)
+- ✅ `/admin.html` - Admin UI (370 lines)
+- ✅ `(admin logic in admin.html)` - Admin logic (541 lines)
 - ✅ Complete separation of concerns (HTML + JS)
 - ✅ ES6 module architecture
 
@@ -501,8 +501,8 @@ Every function includes:
 ### All Requirements Complete
 
 ✅ **Files Created**
-- `/admin/admin.html` ✅
-- `/admin/admin.js` ✅
+- `/admin.html` ✅
+- `(admin logic in admin.html)` ✅
 
 ✅ **Access Control**
 - Session requirement ✅

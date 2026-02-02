@@ -175,7 +175,7 @@ WHERE email = 'your-email@example.com';
 
 ### Accessing the Admin Panel
 
-1. Navigate to `/admin/admin.html`
+1. Navigate to `/admin.html`
 2. Must be logged in with admin role
 3. Panel will load if authorized
 
