@@ -235,6 +235,8 @@ EXPIRY_FROM_EMAIL=noreply@yourdomain.com
 
 - **Admin Panel**: Access at `/admin.html` (admin role required). Run `supabase/complete-schema.sql` and `supabase/migrations/001_membership_automation.sql`, then set your profile role to `admin` in the database. Admin can search users, override tier (with audit), grant entitlements, and view the Audit Log tab.
 
+- **Admin Override Panel & tool separation**: Member tools (Calculators, Academy) appear in the member dashboard and in pricing; internal tools (e.g. Investor Buy Box) do not. The **Override Panel** tab in admin lets you grant/revoke internal tool access manually (reason required). Tier overrides and entitlement grants also require a reason. Tool lists are defined in `js/tools-config.js` (MEMBER_TOOLS vs INTERNAL_TOOLS). Backend must allow `internal_*` product keys for grant and implement `POST /api/admin/revoke-entitlement` for revoke.
+
 ## 🐛 Troubleshooting
 
 ### Payment verification fails

@@ -42,16 +42,14 @@ const CONFIG = {
     academy_premium: 'https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/OYTJWURAXGUWHPHPPMNOYYKI'
   },
   
-  // Tool definitions with tier requirements
+  // Tool definitions with tier requirements (tier matrix only; no internal tools)
   tools: [
     { id: 'offer', name: 'Property Offer Calculator', href: 'offer.html', minTier: 'starter', pills: ['Offer', 'MAO', 'Comps'] },
     { id: 'brrrr', name: 'BRRRR Analyzer', href: 'brrrr.html', minTier: 'starter', pills: ['BRRRR', 'Refi', 'ROI'] },
-    { id: 'dealcheck', name: 'DealCheck Analyzer', href: 'dealcheck.html', minTier: 'serious', pills: ['Flip', 'Rental', 'KPIs'] },
     { id: 'rehab', name: 'Rehab Tracker', href: 'rehabtracker.html', minTier: 'serious', pills: ['Budget', 'Receipts', 'Export'] },
     { id: 'pwt', name: 'Property Walkthrough Tool', href: 'pwt.html', minTier: 'serious', pills: ['Scope', 'Rooms', 'Photos'] },
-    { id: 'wholesale', name: 'Wholesale Analyzer', href: 'wholesale.html', minTier: 'serious', pills: ['Wholesale', 'Fees', 'Spread'] },
-    { id: 'commercial', name: 'Commercial Analyzer', href: 'commercial.html', minTier: 'elite', pills: ['NOI', 'Cap Rate', 'DSCR'] },
-    { id: 'buybox', name: 'Investor Buy Box', href: 'investorbuy-box.html', minTier: 'elite', pills: ['Criteria', 'Markets', 'Leads'] }
+    { id: 'dealcheck', name: 'Deal Check', href: 'dealcheck.html', minTier: 'starter', pills: ['Deal', 'Analysis'] },
+    { id: 'commercial', name: 'Commercial Calculator', href: 'commercial.html', minTier: 'serious', pills: ['Commercial', 'Cap Rate'] }
   ]
 };
 

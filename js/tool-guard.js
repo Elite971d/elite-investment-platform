@@ -1,8 +1,9 @@
 // ============================================
 // Elite Investor Academy - Tool page guard
 // ============================================
-// Include this script in each calculator tool page (offer.html, brrrr.html, etc.).
-// If the page is loaded directly (not in iframe), redirect to protected wrapper.
+// Member-facing calculators only: offer, brrrr, rehabtracker, pwt, dealcheck, commercial.
+// If the page is loaded directly (not in iframe), redirect to protected wrapper so auth + tier are checked.
+// Do NOT use on Investor Buy Box or any internal/non-gated tools.
 // Usage: <script src="/js/tool-guard.js" data-tool="offer"></script>
 // Or set window.ESN_TOOL_ID = 'offer' before this script.
 

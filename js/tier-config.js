@@ -3,6 +3,9 @@
 // ============================================
 // Central configuration for tier permissions and hierarchy
 // Future-ready for webhooks, subscriptions, lifetime licenses, team accounts
+//
+// CONFIRMED: Investor Buy Box is NOT part of any tier.
+// Only tools in the public tier matrix are exposed in pricing, dashboard, and logic.
 
 /**
  * Tier hierarchy configuration
@@ -32,11 +35,10 @@ export const TIER_HIERARCHY = {
     price: 79,
     period: 'month',
     features: [
-      'All Starter features',
-      'DealCheck Analyzer',
+      'Everything in Starter',
       'Rehab Tracker',
-      'Property Walkthrough Tool',
-      'Wholesale Analyzer'
+      'Property Walkthrough Tool (PWT)',
+      'Save & export deals'
     ],
     squareLinkId: '7YCAILWUHUOSLA4AB4FDON63'
   },
@@ -46,10 +48,10 @@ export const TIER_HIERARCHY = {
     price: 149,
     period: 'month',
     features: [
-      'All Serious features',
-      'Commercial Analyzer',
-      'Investor Buy Box',
-      'Investor Academy Access'
+      'Everything in Serious',
+      'Investor Academy access',
+      'Deal templates',
+      'Priority updates'
     ],
     squareLinkId: 'YY2K4SD2IEAQT7WT633D4ARV'
   },
@@ -94,17 +96,16 @@ export const TIER_HIERARCHY = {
  * Tool access requirements
  * Maps tool IDs to minimum required tier
  */
+// Only MEMBER tools (tier matrix). Internal tools (e.g. Investor Buy Box) are in js/tools-config.js
+// and must NEVER be added here — they are not gated by tier and never appear in dashboard/pricing.
 export const TOOL_ACCESS = {
   'offer': 'starter',
   'brrrr': 'starter',
-  'dealcheck': 'serious',
   'rehab': 'serious',
   'rehabtracker': 'serious',
   'pwt': 'serious',
-  'wholesale': 'serious',
-  'commercial': 'elite',
-  'buybox': 'elite',
-  'investorbuy-box': 'elite'
+  'dealcheck': 'starter',
+  'commercial': 'serious'
 };
 
 /**

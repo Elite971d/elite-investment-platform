@@ -14,18 +14,15 @@ const INVEST_ORIGIN = 'https://invest.elitesolutionsnetwork.com';
 const LOGIN_URL = INVEST_ORIGIN + '/login.html';
 const PRICING_URL = INVEST_ORIGIN + '/index.html';
 
-/** Tool ID → minimum required tier (centralized tier logic) */
+/** Tool ID → minimum required tier (tier matrix only; no internal tools) */
 export const TOOL_ACCESS = {
   offer: 'starter',
   brrrr: 'starter',
-  dealcheck: 'serious',
   rehab: 'serious',
   rehabtracker: 'serious',
   pwt: 'serious',
-  wholesale: 'serious',
-  commercial: 'elite',
-  buybox: 'elite',
-  'investorbuy-box': 'elite'
+  dealcheck: 'starter',
+  commercial: 'serious'
 };
 
 /** Tier rank for comparison (higher = more access) */

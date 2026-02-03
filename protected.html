@@ -173,18 +173,16 @@ const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 'YOUR_PUBLI
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Tool id -> path and required tier
+// Tool id -> path and required tier (tier matrix only; no internal tools).
+// Gated member-facing calculators only; Investor Buy Box is NOT included.
 const TOOL_MAP = {
   offer: { path: 'offer.html', tier: 'starter' },
   brrrr: { path: 'brrrr.html', tier: 'starter' },
-  dealcheck: { path: 'dealcheck.html', tier: 'serious' },
   rehab: { path: 'rehabtracker.html', tier: 'serious' },
   rehabtracker: { path: 'rehabtracker.html', tier: 'serious' },
   pwt: { path: 'pwt.html', tier: 'serious' },
-  wholesale: { path: 'wholesale.html', tier: 'serious' },
-  commercial: { path: 'commercial.html', tier: 'elite' },
-  buybox: { path: 'investorbuy-box.html', tier: 'elite' },
-  'investorbuy-box': { path: 'investorbuy-box.html', tier: 'elite' }
+  dealcheck: { path: 'dealcheck.html', tier: 'starter' },
+  commercial: { path: 'commercial.html', tier: 'serious' }
 };
 
 const TIER_RANK = {
@@ -223,8 +221,35 @@ function prettyTier(tier) {
   const error = document.getElementById('error');
   const errorMessage = document.getElementById('errorMessage');
   const calculatorFrame = document.getElementById('calculatorFrame');
-  
+
+  // Referrer check: block embedding from unknown origins (iframe hardening)
+  const allowedOrigins = [
+    'https://invest.elitesolutionsnetwork.com',
+    'https://dealcheck.elitesolutionsnetwork.com',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173'
+  ];
+  const ref = document.referrer;
+  if (ref) {
+    try {
+      const refOrigin = new URL(ref).origin;
+      if (!allowedOrigins.includes(refOrigin)) {
+        window.location.replace('/index.html');
+        return;
+      }
+    } catch (e) {
+      // Invalid referrer URL - allow (direct access has empty referrer)
+    }
+  }
+
   try {
+    // Only allow known gated tools; redirect to pricing for unknown tool IDs
+    if (toolId && !toolConfig) {
+      window.location.replace('/index.html');
+      return;
+    }
     // Check authentication
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
@@ -248,18 +273,16 @@ function prettyTier(tier) {
     
     const userTier = profile.tier || 'guest';
     
-    // Check tier access
+    // Check tier access — redirect to pricing for unauthorized tier
     if (!canAccess(userTier, requiredTier)) {
-      loading.style.display = 'none';
-      error.style.display = 'flex';
-      errorMessage.textContent = `This calculator requires ${prettyTier(requiredTier)} tier. Your current tier is ${prettyTier(userTier)}. Please upgrade to continue.`;
+      window.location.replace('/index.html');
       return;
     }
     
     if (!calculatorUrl) {
       loading.style.display = 'none';
       error.style.display = 'flex';
-      errorMessage.textContent = 'No calculator specified. Use /protected.html?tool=offer (or brrrr, dealcheck, etc.).';
+      errorMessage.textContent = 'No calculator specified. Use /protected.html?tool=offer (or brrrr, rehab, pwt).';
       return;
     }
 

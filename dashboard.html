@@ -329,6 +329,7 @@ body{
 <script type="module">
 // Load Supabase from CDN
 const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+const { getMemberTools } = await import('./js/tools-config.js');
 
 // Get config
 const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
@@ -343,16 +344,8 @@ const SQUARE_LINKS = {
   serious: 'https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/7YCAILWUHUOSLA4AB4FDON63',
   elite: 'https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/YY2K4SD2IEAQT7WT633D4ARV'
 };
-const TOOLS = [
-  { id:"offer", name:"Property Offer Calculator", minTier:"starter", pills:["Offer", "MAO", "Comps"] },
-  { id:"brrrr", name:"BRRRR Analyzer", minTier:"starter", pills:["BRRRR", "Refi", "ROI"] },
-  { id:"dealcheck", name:"DealCheck Analyzer", minTier:"serious", pills:["Flip", "Rental", "KPIs"] },
-  { id:"rehab", name:"Rehab Tracker", minTier:"serious", pills:["Budget", "Receipts", "Export"] },
-  { id:"pwt", name:"Property Walkthrough Tool", minTier:"serious", pills:["Scope", "Rooms", "Photos"] },
-  { id:"wholesale", name:"Wholesale Analyzer", minTier:"serious", pills:["Wholesale", "Fees", "Spread"] },
-  { id:"commercial", name:"Commercial Analyzer", minTier:"elite", pills:["NOI", "Cap Rate", "DSCR"] },
-  { id:"buybox", name:"Investor Buy Box", minTier:"elite", pills:["Criteria", "Markets", "Leads"] }
-];
+// Member tools only (from tools-config). Internal tools never appear here.
+const TOOLS = getMemberTools();
 
 function prettyTier(t){
   const names = {

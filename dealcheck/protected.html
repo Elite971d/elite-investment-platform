@@ -106,12 +106,14 @@
     import { runAuthGuard, TOOL_ACCESS, prettyTier } from './auth-guard.js';
     import { supabase } from './supabase.js';
 
-    // Referrer check: block if referrer is set and from unknown origin (no direct calculator access)
+    // Referrer check: block embedding from unknown origins (iframe hardening)
     const allowedOrigins = [
       'https://invest.elitesolutionsnetwork.com',
       'https://dealcheck.elitesolutionsnetwork.com',
       'http://localhost:3000',
-      'http://127.0.0.1:3000'
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173'
     ];
     const ref = document.referrer;
     if (ref) {
@@ -126,18 +128,15 @@
       }
     }
 
-    /** Calculator paths - ONLY accessible via this wrapper; never direct. */
+    /** Calculator paths - tier matrix tools only; no internal tools. */
     const TOOL_PATHS = {
       offer: '/tools/offer.html',
       brrrr: '/tools/brrrr.html',
-      dealcheck: '/tools/dealcheck.html',
       rehab: '/tools/rehabtracker.html',
       rehabtracker: '/tools/rehabtracker.html',
       pwt: '/tools/pwt.html',
-      wholesale: '/tools/wholesale.html',
-      commercial: '/tools/commercial.html',
-      buybox: '/tools/investorbuy-box.html',
-      'investorbuy-box': '/tools/investorbuy-box.html'
+      dealcheck: '/tools/dealcheck.html',
+      commercial: '/tools/commercial.html'
     };
 
     const params = new URLSearchParams(window.location.search);

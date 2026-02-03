@@ -311,6 +311,7 @@ body{
 
     <div class="tabs" style="margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;">
       <button type="button" class="tab-btn active" data-tab="search">User & Tier</button>
+      <button type="button" class="tab-btn" data-tab="override">Override Panel</button>
       <button type="button" class="tab-btn" data-tab="audit">Audit Log</button>
       <button type="button" class="tab-btn" data-tab="grant">Grant Entitlement</button>
       <button type="button" class="tab-btn" data-tab="usage">Usage Analytics</button>
@@ -346,12 +347,30 @@ body{
         </select>
       </div>
       <div class="tier-selector">
-        <label for="reasonInput">Reason (optional, for audit)</label>
-        <input type="text" class="search-input" id="reasonInput" placeholder="e.g. Support ticket #123">
+        <label for="reasonInput">Reason (required for audit)</label>
+        <input type="text" class="search-input" id="reasonInput" placeholder="e.g. Support ticket #123" required>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
         <button class="btn primary" id="saveBtn">Save Tier</button>
         <button class="btn" id="cancelBtn">Cancel</button>
+      </div>
+    </section>
+
+    <!-- Tab: Override Panel (Member vs Internal tools separation) -->
+    <section class="search-section tab-content" id="tab-override" style="display:none;">
+      <h2>Override Panel</h2>
+      <p style="color:var(--muted);margin-bottom:20px;">Member tools appear in dashboards and pricing. Internal tools are admin-granted only and never shown to members.</p>
+
+      <div class="override-section" style="margin-bottom:28px;padding:20px;border:1px solid var(--border);border-radius:22px;background:rgba(255,255,255,.04);">
+        <h3 style="font-size:1.15rem;margin-bottom:12px;font-family:'Playfair Display',serif;">Member tools</h3>
+        <p style="color:var(--muted);font-size:0.9rem;margin-bottom:12px;">Calculators and Academy access. Use the <strong>User & Tier</strong> tab to override a member&apos;s tier to change their access. These never include internal tools.</p>
+        <ul id="memberToolsList" style="list-style:none;display:flex;flex-wrap:wrap;gap:8px;"></ul>
+      </div>
+
+      <div class="override-section" style="margin-bottom:28px;padding:20px;border:1px solid rgba(212,175,55,.4);border-radius:22px;background:rgba(212,175,55,.06);">
+        <h3 style="font-size:1.15rem;margin-bottom:12px;font-family:'Playfair Display',serif;">Internal tools</h3>
+        <p style="color:var(--muted);font-size:0.9rem;margin-bottom:16px;">Grant or revoke access manually. A reason is required for every action. Internal tools never appear in member dashboards or pricing.</p>
+        <div id="internalToolsBlock"></div>
       </div>
     </section>
 
@@ -361,11 +380,9 @@ body{
       <div class="search-form" style="margin-bottom:16px;">
         <select id="auditActionFilter" class="search-input" style="max-width:200px;">
           <option value="">All actions</option>
-          <option value="tier_override">Tier override</option>
-          <option value="entitlement_grant">Entitlement grant</option>
-          <option value="entitlement_claim">Entitlement claim</option>
-          <option value="webhook_processed">Webhook processed</option>
-          <option value="login">Login</option>
+          <option value="GRANT">GRANT</option>
+          <option value="REVOKE">REVOKE</option>
+          <option value="TIER_CHANGE">TIER_CHANGE</option>
         </select>
         <input type="email" class="search-input" id="auditTargetEmail" placeholder="Target email" style="max-width:220px;">
         <input type="date" class="search-input" id="auditDateFrom" style="max-width:160px;">
@@ -380,7 +397,11 @@ body{
               <th style="text-align:left;padding:10px;">Action</th>
               <th style="text-align:left;padding:10px;">Actor</th>
               <th style="text-align:left;padding:10px;">Target</th>
-              <th style="text-align:left;padding:10px;">Metadata</th>
+              <th style="text-align:left;padding:10px;">Scope</th>
+              <th style="text-align:left;padding:10px;">Tool</th>
+              <th style="text-align:left;padding:10px;">Previous</th>
+              <th style="text-align:left;padding:10px;">New</th>
+              <th style="text-align:left;padding:10px;">Reason</th>
             </tr>
           </thead>
           <tbody id="auditTableBody"></tbody>
@@ -389,9 +410,10 @@ body{
       <div class="loading" id="auditLoading" style="display:none;"><div class="loader"></div><p>Loading...</p></div>
     </section>
 
-    <!-- Tab: Grant Entitlement -->
+    <!-- Tab: Grant Entitlement (member product keys only; internal tools use Override Panel) -->
     <section class="search-section tab-content" id="tab-grant" style="display:none;">
       <h2>Grant Entitlement</h2>
+      <p style="color:var(--muted);margin-bottom:16px;">Member products only. For internal tools (e.g. Investor Buy Box), use the <strong>Override Panel</strong> tab.</p>
       <form class="search-form" id="grantForm" style="flex-direction:column;align-items:flex-start;gap:12px;">
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
           <input type="email" class="search-input" id="grantEmail" placeholder="Target email" required style="min-width:220px;">
@@ -405,6 +427,10 @@ body{
           </select>
           <input type="datetime-local" class="search-input" id="grantExpiresAt" placeholder="Expires at (optional)" style="min-width:200px;">
           <span style="color:var(--muted);font-size:0.9rem;">Leave expiry empty for no expiration</span>
+        </div>
+        <div style="width:100%;max-width:400px;">
+          <label for="grantReason" style="display:block;margin-bottom:6px;font-weight:600;">Reason (required)</label>
+          <input type="text" class="search-input" id="grantReason" placeholder="e.g. Support ticket #123" required style="width:100%;">
         </div>
         <button type="submit" class="btn primary">Grant Entitlement</button>
       </form>
@@ -480,6 +506,119 @@ function showMessage(text, type = 'success') {
   }, 5000);
 }
 
+// Populate Override Panel: Member tools list + Internal tools (grant/revoke with required reason)
+function renderOverridePanel() {
+  const memberList = document.getElementById('memberToolsList');
+  const internalBlock = document.getElementById('internalToolsBlock');
+  if (!memberList || !internalBlock) return;
+
+  const memberTools = getMemberTools();
+  memberList.innerHTML = '';
+  memberTools.forEach(t => {
+    const li = document.createElement('li');
+    li.className = 'pill';
+    li.style.cssText = 'font-size:.75rem;padding:6px 12px;border-radius:999px;border:1px solid var(--border);color:var(--gold);background:rgba(0,0,0,.25);';
+    li.textContent = t.name;
+    memberList.appendChild(li);
+  });
+  const academyLi = document.createElement('li');
+  academyLi.className = 'pill';
+  academyLi.style.cssText = 'font-size:.75rem;padding:6px 12px;border-radius:999px;border:1px solid var(--border);color:var(--gold);background:rgba(0,0,0,.25);';
+  academyLi.textContent = 'Investor Academy access';
+  memberList.appendChild(academyLi);
+
+  const internalTools = getInternalTools();
+  internalBlock.innerHTML = '';
+  internalTools.forEach(tool => {
+    const card = document.createElement('div');
+    card.className = 'override-section';
+    card.style.cssText = 'margin-bottom:20px;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(0,0,0,.2);';
+    card.innerHTML = '<h4 style="margin:0 0 12px;font-size:1rem;">' + escapeHtml(tool.name) + '</h4>' +
+      '<p style="color:var(--muted);font-size:0.85rem;margin-bottom:14px;">' + escapeHtml(tool.description) + '</p>' +
+      '<div class="internal-actions" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">' +
+      '<div><label style="display:block;font-size:0.85rem;margin-bottom:4px;">Target email</label><input type="email" class="search-input internal-email" placeholder="user@example.com" style="min-width:200px;"></div>' +
+      '<div><label style="display:block;font-size:0.85rem;margin-bottom:4px;">Reason (required)</label><input type="text" class="search-input internal-reason" placeholder="e.g. Support ticket #123" style="min-width:220px;"></div>' +
+      '<div style="display:flex;gap:8px;"><button type="button" class="btn primary internal-grant-btn" data-product-key="' + escapeHtml(tool.productKey) + '">Grant access</button>' +
+      '<button type="button" class="btn danger internal-revoke-btn" data-product-key="' + escapeHtml(tool.productKey) + '">Revoke access</button></div>' +
+      '</div>';
+    internalBlock.appendChild(card);
+  });
+
+  internalBlock.querySelectorAll('.internal-grant-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const card = btn.closest('.override-section');
+      const email = card.querySelector('.internal-email').value.trim().toLowerCase();
+      const reason = card.querySelector('.internal-reason').value.trim();
+      const productKey = btn.dataset.productKey;
+      if (!email || !reason) {
+        showMessage('Email and reason are required for grant.', 'error');
+        return;
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      try {
+        const res = await fetch('/api/admin/grant-entitlement', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+          body: JSON.stringify({ target_email: email, product_key: productKey, reason, internal_tool: true })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showMessage(data.error || 'Failed to grant internal access', 'error');
+          return;
+        }
+        showMessage('Internal access granted.', 'success');
+        card.querySelector('.internal-email').value = '';
+        card.querySelector('.internal-reason').value = '';
+      } catch (e) {
+        showMessage('Request failed.', 'error');
+      }
+    });
+  });
+
+  internalBlock.querySelectorAll('.internal-revoke-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const card = btn.closest('.override-section');
+      const email = card.querySelector('.internal-email').value.trim().toLowerCase();
+      const reason = card.querySelector('.internal-reason').value.trim();
+      const productKey = btn.dataset.productKey;
+      if (!email || !reason) {
+        showMessage('Email and reason are required for revoke.', 'error');
+        return;
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      try {
+        const res = await fetch('/api/admin/revoke-entitlement', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+          body: JSON.stringify({ target_email: email, product_key: productKey, reason })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showMessage(data.error || 'Failed to revoke (ensure /api/admin/revoke-entitlement exists)', 'error');
+          return;
+        }
+        showMessage('Internal access revoked.', 'success');
+        card.querySelector('.internal-email').value = '';
+        card.querySelector('.internal-reason').value = '';
+      } catch (e) {
+        showMessage('Request failed.', 'error');
+      }
+    });
+  });
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+function escapeHtmlAttr(s) {
+  if (s == null || s === '') return '';
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // Main initialization
 (async () => {
   const loading = document.getElementById('loading');
@@ -508,6 +647,7 @@ function showMessage(text, type = 'success') {
   loading.style.display = 'none';
   adminPanel.style.display = 'block';
   document.getElementById('adminEmail').textContent = session.user.email;
+  renderOverridePanel();
   
   // Search form handler
   document.getElementById('searchForm').addEventListener('submit', async (e) => {
@@ -563,7 +703,7 @@ function showMessage(text, type = 'success') {
       const res = await fetch('/api/admin/tier-override', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-        body: JSON.stringify({ target_email: email, new_tier: newTier, reason })
+        body: JSON.stringify({ target_email: email, new_tier: newTier, reason: reason || null })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -608,7 +748,7 @@ function showMessage(text, type = 'success') {
     tbody.innerHTML = '';
     loadingEl.style.display = 'block';
     let query = supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(200);
-    if (action) query = query.eq('action', action);
+    if (action) query = query.eq('action_type', action);
     if (targetEmail) query = query.eq('target_email', targetEmail);
     if (dateFrom) query = query.gte('created_at', dateFrom + 'T00:00:00Z');
     if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59Z');
@@ -622,28 +762,37 @@ function showMessage(text, type = 'success') {
       const tr = document.createElement('tr');
       tr.style.borderBottom = '1px solid rgba(255,255,255,.08)';
       tr.innerHTML = '<td style="padding:10px;">' + new Date(r.created_at).toLocaleString() + '</td>' +
-        '<td style="padding:10px;">' + (r.action || '-') + '</td>' +
-        '<td style="padding:10px;">' + (r.actor_email || r.actor_user_id || '-') + '</td>' +
-        '<td style="padding:10px;">' + (r.target_email || r.target_user_id || '-') + '</td>' +
-        '<td style="padding:10px;max-width:280px;overflow:hidden;text-overflow:ellipsis;">' + (r.metadata ? JSON.stringify(r.metadata) : '-') + '</td>';
+        '<td style="padding:10px;">' + (r.action_type || '-') + '</td>' +
+        '<td style="padding:10px;">' + (r.actor_email || '-') + '</td>' +
+        '<td style="padding:10px;">' + (r.target_email || '-') + '</td>' +
+        '<td style="padding:10px;">' + (r.tool_scope || '-') + '</td>' +
+        '<td style="padding:10px;">' + (r.tool_name || '-') + '</td>' +
+        '<td style="padding:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtmlAttr(r.previous_value || '') + '">' + (r.previous_value || '-') + '</td>' +
+        '<td style="padding:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtmlAttr(r.new_value || '') + '">' + (r.new_value || '-') + '</td>' +
+        '<td style="padding:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtmlAttr(r.reason || '') + '">' + (r.reason || '-') + '</td>';
       tbody.appendChild(tr);
     });
   });
 
-  // Grant entitlement
+  // Grant entitlement (member products; reason required)
   document.getElementById('grantForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('grantEmail').value.trim().toLowerCase();
     const product_key = document.getElementById('grantProductKey').value;
+    const reason = document.getElementById('grantReason').value.trim();
     const expiresVal = document.getElementById('grantExpiresAt').value;
     const expires_at = expiresVal ? new Date(expiresVal).toISOString() : null;
+    if (!reason) {
+      showMessage('Reason is required for every grant.', 'error');
+      return;
+    }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     try {
       const res = await fetch('/api/admin/grant-entitlement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-        body: JSON.stringify({ target_email: email, product_key, expires_at })
+        body: JSON.stringify({ target_email: email, product_key, expires_at, reason })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -653,6 +802,7 @@ function showMessage(text, type = 'success') {
       showMessage('Entitlement granted.', 'success');
       document.getElementById('grantEmail').value = '';
       document.getElementById('grantExpiresAt').value = '';
+      document.getElementById('grantReason').value = '';
     } catch (err) {
       showMessage('Request failed.', 'error');
     }
