@@ -11,5 +11,6 @@
 (function () {
   if (typeof window === 'undefined') return;
   window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://rnrqntxewqcnczcooxkc.supabase.co';
-  window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || 'process.env.SUPABASE_KEY';
+  // Paste your anon/public key here (long JWT from Dashboard → Settings → API). Do not use env var names.
+  window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || ' process.env.SUPABASE_KEY';
 })();
