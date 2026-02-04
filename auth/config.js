@@ -11,6 +11,10 @@
 (function () {
   if (typeof window === 'undefined') return;
   window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://rnrqntxewqcnczcooxkc.supabase.co';
-  // Paste your anon/public key here (long JWT from Dashboard → Settings → API). Do not use env var names.
-  window.__SUPABASE_ANON_KEY__ = window.__SUPABASE_ANON_KEY__ || ' process.env.SUPABASE_KEY';
+  // MUST be the real anon key (long JWT from Supabase Dashboard → Settings → API). Not "process.env.xxx" or placeholder.
+  var anonKey = window.__SUPABASE_ANON_KEY__ || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJucnFudHhld3FjbmN6Y29veGtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5MDI1MjUsImV4cCI6MjA4NTQ3ODUyNX0.stdUK5v1N2erk7IOphpfF8m0t5uPE1riyrgWbMPbtuk';
+  window.__SUPABASE_ANON_KEY__ = anonKey;
+  if (anonKey === 'YOUR_PUBLIC_ANON_KEY' || anonKey.indexOf('process.env') !== -1) {
+    console.warn('[auth/config.js] Replace YOUR_PUBLIC_ANON_KEY with your real Supabase anon key (Dashboard → Settings → API) or you will get "Invalid API key" on login.');
+  }
 })();
