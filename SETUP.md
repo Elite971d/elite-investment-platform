@@ -14,18 +14,15 @@
 
 ## 2. Update Configuration Files
 
-### Update HTML Files
+### Supabase credentials (fixes "Failed to fetch")
 
-Search and replace in these files:
-- `login.html`
-- `reset-password.html`
-- `dashboard.html`
-- `success.html`
-- `protected.html`
+Edit **one file** only: **`auth/config.js`**
 
 Replace:
 - `YOUR_PROJECT_ID` → Your Supabase project ID (from URL: `https://xxxxx.supabase.co`)
 - `YOUR_PUBLIC_ANON_KEY` → Your Supabase anon key
+
+All pages (login, dashboard, admin, protected, reset, magic-link, success) load this file first. If you see "Failed to fetch" on login or dashboard, the app is still using the placeholders — update `auth/config.js` with your real project URL and anon key.
 
 ### Update API Files (Optional - uses env vars)
 
