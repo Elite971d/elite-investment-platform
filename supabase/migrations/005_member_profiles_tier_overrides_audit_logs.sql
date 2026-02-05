@@ -35,24 +35,29 @@ CREATE INDEX IF NOT EXISTS idx_member_profiles_tier ON member_profiles(tier);
 ALTER TABLE member_profiles ENABLE ROW LEVEL SECURITY;
 
 -- User can select/update their own row
+DROP POLICY IF EXISTS "member_profiles_select_own" ON member_profiles;
 CREATE POLICY "member_profiles_select_own"
   ON member_profiles FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "member_profiles_update_own" ON member_profiles;
 CREATE POLICY "member_profiles_update_own"
   ON member_profiles FOR UPDATE
   USING (auth.uid() = id);
 
 -- Admin can select/update all rows (from JWT metadata)
+DROP POLICY IF EXISTS "member_profiles_admin_select" ON member_profiles;
 CREATE POLICY "member_profiles_admin_select"
   ON member_profiles FOR SELECT
   USING (public.is_admin_from_jwt());
 
+DROP POLICY IF EXISTS "member_profiles_admin_update" ON member_profiles;
 CREATE POLICY "member_profiles_admin_update"
   ON member_profiles FOR UPDATE
   USING (public.is_admin_from_jwt());
 
 -- Allow insert for new users (trigger) via service role or auth
+DROP POLICY IF EXISTS "member_profiles_insert_own" ON member_profiles;
 CREATE POLICY "member_profiles_insert_own"
   ON member_profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
@@ -76,26 +81,31 @@ CREATE INDEX IF NOT EXISTS idx_tier_overrides_expires_at ON tier_overrides(expir
 ALTER TABLE tier_overrides ENABLE ROW LEVEL SECURITY;
 
 -- Admin can select all; user can select own (for dashboard tier resolution)
+DROP POLICY IF EXISTS "tier_overrides_admin_select" ON tier_overrides;
 CREATE POLICY "tier_overrides_admin_select"
   ON tier_overrides FOR SELECT
   USING (public.is_admin_from_jwt());
 
+DROP POLICY IF EXISTS "tier_overrides_select_own" ON tier_overrides;
 CREATE POLICY "tier_overrides_select_own"
   ON tier_overrides FOR SELECT
   USING (auth.uid() = user_id);
 
 -- Only admin can insert
+DROP POLICY IF EXISTS "tier_overrides_admin_insert" ON tier_overrides;
 CREATE POLICY "tier_overrides_admin_insert"
   ON tier_overrides FOR INSERT
   WITH CHECK (public.is_admin_from_jwt());
 
 -- Only admin can update (e.g. set expires_at)
+DROP POLICY IF EXISTS "tier_overrides_admin_update" ON tier_overrides;
 CREATE POLICY "tier_overrides_admin_update"
   ON tier_overrides FOR UPDATE
   USING (public.is_admin_from_jwt())
   WITH CHECK (public.is_admin_from_jwt());
 
 -- Only admin can delete (remove override)
+DROP POLICY IF EXISTS "tier_overrides_admin_delete" ON tier_overrides;
 CREATE POLICY "tier_overrides_admin_delete"
   ON tier_overrides FOR DELETE
   USING (public.is_admin_from_jwt());
@@ -120,11 +130,13 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Only admin can select
+DROP POLICY IF EXISTS "audit_logs_admin_select" ON audit_logs;
 CREATE POLICY "audit_logs_admin_select"
   ON audit_logs FOR SELECT
   USING (public.is_admin_from_jwt());
 
 -- Only admin can insert
+DROP POLICY IF EXISTS "audit_logs_admin_insert" ON audit_logs;
 CREATE POLICY "audit_logs_admin_insert"
   ON audit_logs FOR INSERT
   WITH CHECK (public.is_admin_from_jwt());
@@ -177,15 +189,18 @@ CREATE TRIGGER member_profiles_updated_at
 -- ============================================
 -- ENTITLEMENTS: Allow admin to insert/update (static-first, no API)
 -- ============================================
+DROP POLICY IF EXISTS "entitlements_admin_insert" ON entitlements;
 CREATE POLICY "entitlements_admin_insert"
   ON entitlements FOR INSERT
   WITH CHECK (public.is_admin_from_jwt());
 
+DROP POLICY IF EXISTS "entitlements_admin_update" ON entitlements;
 CREATE POLICY "entitlements_admin_update"
   ON entitlements FOR UPDATE
   USING (public.is_admin_from_jwt())
   WITH CHECK (public.is_admin_from_jwt());
 
+DROP POLICY IF EXISTS "entitlements_admin_select" ON entitlements;
 CREATE POLICY "entitlements_admin_select"
   ON entitlements FOR SELECT
   USING (public.is_admin_from_jwt());

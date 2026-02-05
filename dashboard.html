@@ -344,6 +344,7 @@ const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/su
 const { getMemberTools } = await import('./js/tools-config.js');
 const { getTierPaymentLink } = await import('./js/tier-config.js');
 const { track } = await import('./js/analytics.js');
+const { getEffectiveTierCached, revalidateEffectiveTier } = await import('./js/entitlements.js');
 
 // Config: auth/config.js (window) or build env, then placeholder
 const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
@@ -409,42 +410,6 @@ async function getUserProfile(userId) {
     .eq('id', userId)
     .single();
   return { data, error };
-}
-
-// Effective tier = admin bypass OR override (if active) OR member_profiles OR profiles OR auth metadata OR guest
-async function getEffectiveTier(user) {
-  const isAdminUser = user?.user_metadata?.role === 'admin' || user?.app_metadata?.role === 'admin';
-  if (isAdminUser) return { effectiveTier: 'admin', resolvedFrom: 'admin' };
-
-  const now = new Date().toISOString();
-  const { data: override } = await supabase
-    .from('tier_overrides')
-    .select('override_tier')
-    .eq('user_id', user.id)
-    .or('expires_at.is.null,expires_at.gt.' + now)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (override?.override_tier) return { effectiveTier: String(override.override_tier), resolvedFrom: 'override' };
-
-  const { data: memberProfile } = await supabase
-    .from('member_profiles')
-    .select('tier')
-    .eq('id', user.id)
-    .single();
-  if (memberProfile?.tier) return { effectiveTier: String(memberProfile.tier), resolvedFrom: 'profile' };
-
-  const { data: legacyProfile } = await supabase
-    .from('profiles')
-    .select('tier')
-    .eq('id', user.id)
-    .single();
-  if (legacyProfile?.tier) return { effectiveTier: String(legacyProfile.tier), resolvedFrom: 'profile' };
-
-  const metaTier = user?.user_metadata?.tier ?? user?.app_metadata?.tier;
-  if (metaTier) return { effectiveTier: String(metaTier), resolvedFrom: 'metadata' };
-
-  return { effectiveTier: 'guest', resolvedFrom: 'default' };
 }
 
 function ensureTier(tier) {
@@ -546,11 +511,15 @@ function initTabs() {
     document.getElementById('adminLink').style.display = 'inline-flex';
   }
 
-  const { effectiveTier, resolvedFrom } = await getEffectiveTier(user);
+  revalidateEffectiveTier(user.id);
+  const { effectiveTier, resolvedFrom } = await getEffectiveTierCached(user);
   try {
     track('auth_state', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard', metadata: { resolvedFrom } });
     if (role === 'admin' && effectiveTier !== 'admin') {
       track('tier_mismatch', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard', metadata: { expected: 'admin', resolvedFrom } });
+    }
+    if (resolvedFrom === 'past_due_grace_exceeded' || resolvedFrom === 'subscription_canceled') {
+      track('enforcement_downgrade', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard', metadata: { resolvedFrom } });
     }
   } catch (_) {}
   if (role === 'admin') {

@@ -1,9 +1,11 @@
 // ============================================
 // Elite Investor Academy - Tier Guard Utilities
 // ============================================
+// Uses subscription-aware effective tier (entitlements). Admin always bypasses.
 
 import { CONFIG, prettyTier } from './config.js';
 import { getCurrentUser, getUserProfile } from './supabase-client.js';
+import { getEffectiveTierCached } from './entitlements.js';
 
 // Check if user can access a tier
 export function canAccessTier(userTier, requiredTier) {
@@ -13,11 +15,7 @@ export function canAccessTier(userTier, requiredTier) {
 }
 
 /**
- * Resolve effective tier for access control.
- * Role takes precedence over stored tier (logic override, no DB mutation).
- * - If role === 'admin' → effectiveTier = 'admin' (full access)
- * - Else if profile.tier exists → use profile.tier
- * - Else → 'guest'
+ * Sync resolution from profile only (no subscription logic). Use getUserTier() for full enforcement.
  */
 export function resolveEffectiveTier(profile) {
   if (!profile) return 'guest';
@@ -26,16 +24,13 @@ export function resolveEffectiveTier(profile) {
   return (t === undefined || t === null || t === '') ? 'guest' : String(t);
 }
 
-// Get user's effective tier (used for access control; admin bypasses tier gating)
+/** Get user's effective tier (subscription-aware, cached per session). Admin bypasses. */
 export async function getUserTier() {
   try {
     const user = await getCurrentUser();
     if (!user) return 'guest';
-
-    const { data: profile, error } = await getUserProfile(user.id);
-    if (error || !profile) return 'guest';
-
-    return resolveEffectiveTier(profile);
+    const { effectiveTier } = await getEffectiveTierCached(user);
+    return effectiveTier ?? 'guest';
   } catch (err) {
     console.error('Error getting user tier:', err);
     return 'guest';

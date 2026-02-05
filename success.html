@@ -202,12 +202,15 @@ function showLoginPrompt(paymentEmail) {
   }
 
   const paymentEmail = verifyData.email || null;
+  const tierFromVerify = verifyData.tier || null;
 
   if (session) {
     if (session.user.email && paymentEmail && session.user.email.toLowerCase() === paymentEmail.toLowerCase()) {
       document.getElementById('message').textContent = 'Claiming your access...';
       try {
-        const res = await fetch('/api/members/claim?email=' + encodeURIComponent(session.user.email), {
+        let claimUrl = '/api/members/claim?email=' + encodeURIComponent(session.user.email);
+        if (tierFromVerify) claimUrl += '&tier=' + encodeURIComponent(tierFromVerify);
+        const res = await fetch(claimUrl, {
           method: 'GET',
           headers: { 'Authorization': 'Bearer ' + session.access_token }
         });
@@ -216,6 +219,10 @@ function showLoginPrompt(paymentEmail) {
           showError(data.error || 'Could not claim access. Please contact support.');
           return;
         }
+        try {
+          const { revalidateEffectiveTier } = await import('/js/entitlements.js');
+          revalidateEffectiveTier(session.user.id);
+        } catch (_) {}
         document.getElementById('message').textContent = 'Access claimed! Redirecting to dashboard...';
         setTimeout(() => { window.location.href = '/dashboard.html'; }, 1500);
       } catch (err) {

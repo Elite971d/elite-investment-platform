@@ -1,0 +1,9 @@
+{
+  "name": "invest-elitesolutionsnetwork",
+  "version": "1.0.0",
+  "description": "Elite Investor Academy - static frontend + Vercel serverless APIs",
+  "private": true,
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}

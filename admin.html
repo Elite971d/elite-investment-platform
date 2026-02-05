@@ -317,6 +317,7 @@ body{
       <button type="button" class="tab-btn" data-tab="audit">Audit Log</button>
       <button type="button" class="tab-btn" data-tab="grant">Grant Entitlement</button>
       <button type="button" class="tab-btn" data-tab="usage">Usage Analytics</button>
+      <button type="button" class="tab-btn" data-tab="revenue">Revenue</button>
     </div>
 
     <!-- Tab: User & Tier -->
@@ -418,6 +419,8 @@ body{
           <option value="TIER_OVERRIDE_REMOVED">TIER_OVERRIDE_REMOVED</option>
           <option value="GRANT">GRANT</option>
           <option value="REVOKE">REVOKE</option>
+          <option value="SUBSCRIPTION_ACTIVATED">SUBSCRIPTION_ACTIVATED</option>
+          <option value="BILLING_RETRY_FAILED">BILLING_RETRY_FAILED</option>
         </select>
         <input type="email" class="search-input" id="auditTargetEmail" placeholder="Target email" style="max-width:220px;">
         <input type="date" class="search-input" id="auditDateFrom" style="max-width:160px;">
@@ -488,6 +491,39 @@ body{
         <p style="margin-top:12px;color:var(--muted);font-size:0.9rem;" id="usageTotal"></p>
       </div>
       <div class="loading" id="usageLoading" style="display:none;"><div class="loader"></div><p>Loading...</p></div>
+    </section>
+
+    <!-- Tab: Revenue (admin-only, read-only, Supabase only) -->
+    <section class="search-section tab-content" id="tab-revenue" style="display:none;">
+      <h2>Revenue</h2>
+      <p style="color:var(--muted);margin-bottom:16px;">Subscription counts and MRR from member_profiles. No customer payment details. Read-only.</p>
+      <div style="margin-bottom:16px;">
+        <button type="button" class="btn primary" id="revenueLoadBtn">Load Revenue</button>
+      </div>
+      <div id="revenueStats" style="display:none;">
+        <table class="tier-select" style="width:100%;border-collapse:collapse;font-size:0.9rem;margin-bottom:20px;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);">
+              <th style="text-align:left;padding:10px;">Metric</th>
+              <th style="text-align:right;padding:10px;">Value</th>
+            </tr>
+          </thead>
+          <tbody id="revenueSummaryBody"></tbody>
+        </table>
+        <h3 style="font-size:1.1rem;margin-bottom:10px;">Active subscribers by tier</h3>
+        <table class="tier-select" style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);">
+              <th style="text-align:left;padding:10px;">Tier</th>
+              <th style="text-align:right;padding:10px;">Active</th>
+              <th style="text-align:right;padding:10px;">Past due</th>
+              <th style="text-align:right;padding:10px;">Canceled</th>
+            </tr>
+          </thead>
+          <tbody id="revenueByTierBody"></tbody>
+        </table>
+      </div>
+      <div class="loading" id="revenueLoading" style="display:none;"><div class="loader"></div><p>Loading...</p></div>
     </section>
   </div>
 </main>
@@ -959,6 +995,63 @@ function escapeHtmlAttr(s) {
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.href = '/login.html';
+  });
+
+  // Revenue (admin-only; Supabase only; no payment details)
+  const TIER_MONTHLY_CENTS = { starter: 2900, serious: 7900, elite: 14900, pro: 14900, academy_starter: 2900, academy_pro: 7900, academy_premium: 14900 };
+  document.getElementById('revenueLoadBtn').addEventListener('click', async () => {
+    const loadingEl = document.getElementById('revenueLoading');
+    const statsEl = document.getElementById('revenueStats');
+    const summaryBody = document.getElementById('revenueSummaryBody');
+    const byTierBody = document.getElementById('revenueByTierBody');
+    loadingEl.style.display = 'block';
+    statsEl.style.display = 'none';
+    const { data: rows, error } = await supabase
+      .from('member_profiles')
+      .select('tier, subscription_status, role')
+      .neq('role', 'admin');
+    loadingEl.style.display = 'none';
+    if (error) {
+      showMessage('Failed to load revenue data: ' + error.message, 'error');
+      return;
+    }
+    const list = rows || [];
+    const active = list.filter(r => r.subscription_status === 'active' || r.subscription_status === 'trial' || !r.subscription_status);
+    const pastDue = list.filter(r => r.subscription_status === 'past_due');
+    const canceled = list.filter(r => r.subscription_status === 'canceled');
+    let mrrCents = 0;
+    active.forEach(r => {
+      const c = TIER_MONTHLY_CENTS[r.tier];
+      if (c) mrrCents += c;
+    });
+    summaryBody.innerHTML = '';
+    [
+      ['Total active subscribers', active.length],
+      ['Past-due count', pastDue.length],
+      ['Canceled subscriptions', canceled.length],
+      ['Monthly recurring revenue (MRR)', '$' + (mrrCents / 100).toFixed(2)]
+    ].forEach(([label, value]) => {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255,255,255,.08)';
+      tr.innerHTML = '<td style="padding:10px;">' + escapeHtmlAttr(label) + '</td><td style="padding:10px;text-align:right;">' + escapeHtmlAttr(String(value)) + '</td>';
+      summaryBody.appendChild(tr);
+    });
+    const tiers = ['starter', 'serious', 'elite', 'pro', 'academy_starter', 'academy_pro', 'academy_premium', 'guest'];
+    byTierBody.innerHTML = '';
+    tiers.forEach(tier => {
+      const activeN = list.filter(r => r.tier === tier && (r.subscription_status === 'active' || r.subscription_status === 'trial' || !r.subscription_status)).length;
+      const pastDueN = list.filter(r => r.tier === tier && r.subscription_status === 'past_due').length;
+      const canceledN = list.filter(r => r.tier === tier && r.subscription_status === 'canceled').length;
+      if (activeN === 0 && pastDueN === 0 && canceledN === 0) return;
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255,255,255,.08)';
+      tr.innerHTML = '<td style="padding:10px;">' + escapeHtmlAttr(prettyTier(tier)) + '</td>' +
+        '<td style="padding:10px;text-align:right;">' + activeN + '</td>' +
+        '<td style="padding:10px;text-align:right;">' + pastDueN + '</td>' +
+        '<td style="padding:10px;text-align:right;">' + canceledN + '</td>';
+      byTierBody.appendChild(tr);
+    });
+    statsEl.style.display = 'block';
   });
 
   // Usage analytics (RLS: admins can select usage_logs)

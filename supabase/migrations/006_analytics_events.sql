@@ -32,6 +32,3 @@ CREATE POLICY "analytics_events_insert_any"
 CREATE POLICY "analytics_events_admin_select"
   ON analytics_events FOR SELECT
   USING (public.is_admin_from_jwt());
-
--- No update or delete from client
--- (Optional: add admin delete policy later for GDPR if needed)
