@@ -34,19 +34,30 @@ function resolveRedirect(fallback = '/dashboard.html') {
 }
 
 /**
- * Require authentication. Redirects to login if no session.
+ * Require authentication. Redirects to login if no session or on auth failure.
  * Use on protected pages (e.g. dashboard).
  * @returns {Promise<boolean>} true if authenticated, false after redirect
  */
 export async function requireAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    const loginUrl = '/login.html';
-    const redirect = encodeURIComponent(window.location.pathname + window.location.search);
-    window.location.replace(redirect ? `${loginUrl}?redirect=${redirect}` : loginUrl);
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.warn('[auth] getSession failed:', error.message || error);
+      window.location.replace('/login.html');
+      return false;
+    }
+    if (!session) {
+      const loginUrl = '/login.html';
+      const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.replace(redirect ? `${loginUrl}?redirect=${redirect}` : loginUrl);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[auth] requireAuth failed:', err?.message || err);
+    window.location.replace('/login.html');
     return false;
   }
-  return true;
 }
 
 /**
@@ -54,9 +65,17 @@ export async function requireAuth() {
  * @param {string} [target] - Where to send logged-in users
  */
 export async function redirectIfAuthenticated(target = '/dashboard.html') {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    window.location.replace(resolveRedirect(target));
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.warn('[auth] getSession failed (redirectIfAuthenticated):', error.message || error);
+      return;
+    }
+    if (session) {
+      window.location.replace(resolveRedirect(target));
+    }
+  } catch (err) {
+    console.warn('[auth] redirectIfAuthenticated failed:', err?.message || err);
   }
 }
 
@@ -65,15 +84,25 @@ export async function redirectIfAuthenticated(target = '/dashboard.html') {
  * @returns {Promise<import('@supabase/supabase-js').User | null>}
  */
 export async function getCurrentUser() {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) console.warn('[auth] getUser failed:', error.message || error);
+    return user ?? null;
+  } catch (err) {
+    console.warn('[auth] getCurrentUser failed:', err?.message || err);
+    return null;
+  }
 }
 
 /**
  * Log out and redirect to login.
  */
 export async function logout() {
-  await supabase.auth.signOut();
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.warn('[auth] signOut failed:', err?.message || err);
+  }
   window.location.replace('/login.html');
 }
 

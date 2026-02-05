@@ -136,7 +136,18 @@ function showLoginPrompt(paymentEmail) {
   const checkoutId = params.get('checkoutId') || params.get('checkout_id');
   const transactionId = params.get('transactionId') || params.get('transaction_id');
 
-  const { data: { session } } = await supabase.auth.getSession();
+  let session;
+  try {
+    const result = await supabase.auth.getSession();
+    session = result.data?.session;
+  } catch (err) {
+    console.warn('[success] getSession failed:', err?.message || err);
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('message').textContent = 'Your payment was successful. Sign in below to claim access.';
+    document.getElementById('loginPrompt').classList.add('show');
+    document.getElementById('paymentEmail').textContent = '';
+    return;
+  }
 
   // If no Square params, try claim flow for returning user
   if (!checkoutId && !transactionId) {
@@ -234,10 +245,13 @@ function showLoginPrompt(paymentEmail) {
     } catch (err) {
       btn.disabled = false;
       btn.textContent = 'Send magic link to my email';
-      alert(err?.message || 'Failed to send magic link.');
+      alert((err && err.message) ? err.message : 'Failed to send magic link.');
     }
   });
-})();
+})().catch((err) => {
+  console.warn('[success] init failed:', err?.message || err);
+  showError('Something went wrong. Please sign in or contact support.');
+});
 </script>
 </body>
 </html>

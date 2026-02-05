@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Login - Elite Investor Academy</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230A2342'/><text x='16' y='22' font-size='20' text-anchor='middle' fill='%23FF7300' font-family='sans-serif'>E</text></svg>">
 
 <style>
 * {
@@ -246,11 +247,20 @@ const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.__SUPABASE_AN
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Check if already logged in
-supabase.auth.getSession().then(({ data: { session } }) => {
-  if (session) {
-    window.location.href = '/dashboard.html';
+// Check if already logged in (redirect to dashboard; on failure stay on login so user can retry)
+supabase.auth.getSession().then(({ data: { session }, error }) => {
+  if (error) {
+    console.warn('[login] getSession failed:', error.message || error);
+    return;
   }
+  if (session) {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+    const path = redirect && redirect.startsWith('/') ? redirect : '/dashboard.html';
+    window.location.replace(path);
+  }
+}).catch((err) => {
+  console.warn('[login] getSession error:', err?.message || err);
 });
 
 // Handle form submission
@@ -279,16 +289,24 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     
     if (error) throw error;
     
-    // Success - redirect to dashboard
+    // Success - redirect to dashboard or allowed redirect param
     successMsg.textContent = 'Login successful! Redirecting...';
     successMsg.classList.add('show');
-    
+    const allowed = ['/dashboard.html', '/', '/index.html', '/success.html', '/protected.html'];
+    const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+    let target = '/dashboard.html';
+    if (redirectParam && redirectParam.startsWith('/')) {
+      try {
+        const path = new URL(redirectParam, window.location.origin).pathname;
+        if (allowed.includes(path)) target = redirectParam;
+      } catch (_) {}
+    }
     setTimeout(() => {
-      window.location.href = '/dashboard.html';
+      window.location.href = target;
     }, 500);
     
   } catch (err) {
-    errorMsg.textContent = err.message || 'Invalid email or password. Please try again.';
+    errorMsg.textContent = (err && err.message) ? err.message : 'Invalid email or password. Please try again.';
     errorMsg.classList.add('show');
     loading.classList.remove('show');
     submitBtn.disabled = false;

@@ -22,7 +22,8 @@ export function canAccessTier(userTier, requiredTier) {
 export function resolveEffectiveTier(profile) {
   if (!profile) return 'guest';
   if (profile.role === 'admin') return 'admin';
-  return profile.tier || 'guest';
+  const t = profile.tier;
+  return (t === undefined || t === null || t === '') ? 'guest' : String(t);
 }
 
 // Get user's effective tier (used for access control; admin bypasses tier gating)

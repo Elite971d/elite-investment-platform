@@ -6,8 +6,8 @@
 
 const CONFIG = {
   supabase: {
-    url: import.meta.env.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co',
-    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_PUBLIC_ANON_KEY'
+    url: (typeof window !== 'undefined' && window.__SUPABASE_URL__) || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || 'https://YOUR_PROJECT_ID.supabase.co',
+    anonKey: (typeof window !== 'undefined' && window.__SUPABASE_ANON_KEY__) || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || 'YOUR_PUBLIC_ANON_KEY'
   },
   
   // Square Payment Link IDs → Tier mapping

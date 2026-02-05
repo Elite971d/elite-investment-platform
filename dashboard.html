@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Member Dashboard - Elite Investor Academy</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230A2342'/><text x='16' y='22' font-size='20' text-anchor='middle' fill='%23FF7300' font-family='sans-serif'>E</text></svg>">
 
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 
@@ -303,7 +304,7 @@ body{
       <h3>Investor Academy Training</h3>
       <p>Elite/Pro tier unlocks the full training library. Access comprehensive courses, templates, and resources.</p>
       <div class="tool-actions" style="margin-top:12px;">
-        <a class="tool-link" href="academy.html" id="academyLink">Open Academy Page</a>
+        <a class="tool-link" href="index.html#pricing" id="academyLink">Open Academy Page</a>
         <a class="tool-link" href="mailto:support@elitesolutionsnetwork.com?subject=Investor%20Academy%20Access">Request Access</a>
       </div>
     </div>
@@ -379,12 +380,23 @@ function canAccess(userTier, minTier) {
 
 // Check authentication and redirect if needed
 async function checkAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    window.location.href = '/login.html';
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.warn('[dashboard] getSession failed:', error.message || error);
+      window.location.replace('/login.html');
+      return null;
+    }
+    if (!session) {
+      window.location.replace('/login.html');
+      return null;
+    }
+    return session;
+  } catch (err) {
+    console.warn('[dashboard] checkAuth failed:', err?.message || err);
+    window.location.replace('/login.html');
     return null;
   }
-  return session;
 }
 
 async function getUserProfile(userId) {
@@ -410,26 +422,31 @@ async function getEffectiveTier(user) {
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (override?.override_tier) return { effectiveTier: override.override_tier, resolvedFrom: 'override' };
+  if (override?.override_tier) return { effectiveTier: String(override.override_tier), resolvedFrom: 'override' };
 
   const { data: memberProfile } = await supabase
     .from('member_profiles')
     .select('tier')
     .eq('id', user.id)
     .single();
-  if (memberProfile?.tier) return { effectiveTier: memberProfile.tier, resolvedFrom: 'profile' };
+  if (memberProfile?.tier) return { effectiveTier: String(memberProfile.tier), resolvedFrom: 'profile' };
 
   const { data: legacyProfile } = await supabase
     .from('profiles')
     .select('tier')
     .eq('id', user.id)
     .single();
-  if (legacyProfile?.tier) return { effectiveTier: legacyProfile.tier, resolvedFrom: 'profile' };
+  if (legacyProfile?.tier) return { effectiveTier: String(legacyProfile.tier), resolvedFrom: 'profile' };
 
   const metaTier = user?.user_metadata?.tier ?? user?.app_metadata?.tier;
-  if (metaTier) return { effectiveTier: metaTier, resolvedFrom: 'metadata' };
+  if (metaTier) return { effectiveTier: String(metaTier), resolvedFrom: 'metadata' };
 
   return { effectiveTier: 'guest', resolvedFrom: 'default' };
+}
+
+function ensureTier(tier) {
+  if (tier === undefined || tier === null || tier === '') return 'guest';
+  return String(tier);
 }
 
 function hasValidEntitlement(entitlements) {
@@ -445,8 +462,8 @@ function renderTools(userTier, entitlements, expired) {
   grid.innerHTML = '';
   // Admin never resolves to Guest; bypass expired downgrade for admin
   const effectiveTier = userTier === 'admin' ? 'admin' : (expired ? 'guest' : userTier);
-  const displayTier = effectiveTier === 'admin' ? 'Admin / Full Access' : prettyTier(effectiveTier);
-
+  const safeTier = ensureTier(effectiveTier);
+  const displayTier = effectiveTier === 'admin' ? 'Admin / Full Access' : prettyTier(safeTier);
   document.getElementById('tierLabel').textContent = displayTier;
   document.getElementById('accountTier').textContent = displayTier;
   
@@ -463,7 +480,7 @@ function renderTools(userTier, entitlements, expired) {
   }
   
   TOOLS.forEach(function (tool) {
-    const access = canAccess(effectiveTier, tool.minTier);
+    const access = canAccess(safeTier, tool.minTier);
     const toolPath = tool.path || (tool.id + '.html');
     const toolHref = access ? (toolPath.startsWith('/') ? toolPath : '/' + toolPath) : '#';
     const upgradeUrl = getTierPaymentLink(tool.minTier) || '/index.html#pricing';
@@ -511,6 +528,7 @@ function initTabs() {
 
 // Main initialization
 (async () => {
+  try {
   const session = await checkAuth();
   if (!session) return;
   
@@ -601,6 +619,10 @@ function initTabs() {
       });
     }
   });
+  } catch (err) {
+    console.warn('[dashboard] init failed:', err?.message || err);
+    window.location.replace('/login.html');
+  }
 })();
 </script>
 

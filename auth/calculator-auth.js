@@ -49,11 +49,18 @@
       return;
     }
 
-    var createClient = (await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')).createClient;
-    var supabase = createClient(supabaseUrl, supabaseKey);
-
-    var sessionResult = await supabase.auth.getSession();
-    var session = sessionResult.data && sessionResult.data.session;
+    var createClient, supabase, sessionResult, session;
+    try {
+      createClient = (await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')).createClient;
+      supabase = createClient(supabaseUrl, supabaseKey);
+      sessionResult = await supabase.auth.getSession();
+      session = sessionResult.data && sessionResult.data.session;
+    } catch (e) {
+      if (typeof console !== 'undefined') console.warn('[calculator-auth] init/getSession failed:', e && e.message ? e.message : e);
+      if (!inIframe) window.location.replace(BASE + LOGIN_PATH);
+      else showInFrameMessage('Unable to verify access. Please try again.', BASE + LOGIN_PATH);
+      return;
+    }
     if (!session) {
       if (!inIframe) {
         var loginUrl = BASE + LOGIN_PATH + '?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
@@ -92,7 +99,7 @@
     }
     if (!profileTier && user.user_metadata) profileTier = user.user_metadata.tier || null;
     if (!profileTier && user.app_metadata) profileTier = user.app_metadata.tier || null;
-    var userTier = profileTier || 'guest';
+    var userTier = (profileTier === undefined || profileTier === null || profileTier === '') ? 'guest' : profileTier;
 
     if (!canAccess(userTier, requiredTier)) {
       if (!inIframe) window.location.replace(BASE + DASHBOARD_PATH);
@@ -101,7 +108,19 @@
     }
 
     document.documentElement.classList.remove('esn-calc-auth-pending');
-  })();
+  })().catch(function (err) {
+    if (typeof console !== 'undefined') console.warn('[calculator-auth] runGuard failed:', err && err.message ? err.message : err);
+    document.documentElement.classList.remove('esn-calc-auth-pending');
+    var inIframe = typeof window !== 'undefined' && window.self !== window.top;
+    var BASE = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin.replace(/\/$/, '') : '';
+    if (!inIframe) window.location.replace(BASE + '/login.html');
+    else {
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'font-family:sans-serif;padding:2rem;text-align:center;color:#333;max-width:400px;margin:2rem auto;';
+      wrap.innerHTML = '<p><strong>Something went wrong. Please try again.</strong></p><p><a href="/login.html" style="color:#FF7300;">Log in</a></p>';
+      if (document.body) { document.body.innerHTML = ''; document.body.appendChild(wrap); }
+    }
+  });
 
   function showInFrameMessage(text, linkUrl) {
     document.documentElement.classList.remove('esn-calc-auth-pending');

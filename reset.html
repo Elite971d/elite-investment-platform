@@ -151,11 +151,15 @@ const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.__SUPABASE_AN
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // If already logged in, redirect to dashboard
-const { data: { session } } = await supabase.auth.getSession();
-if (session) {
-  const params = new URLSearchParams(window.location.search);
-  const redirect = params.get('redirect');
-  window.location.href = redirect && /^\/[^/]/.test(redirect) ? redirect : '/dashboard.html';
+try {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (!error && session) {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+    window.location.replace(redirect && /^\/[^/]/.test(redirect) ? redirect : '/dashboard.html');
+  }
+} catch (err) {
+  console.warn('[reset] getSession failed:', err?.message || err);
 }
 
 // Check hash (password reset link clicked)
@@ -165,9 +169,15 @@ if (hash && hash.includes('access_token')) {
   const accessToken = hashParams.get('access_token');
   const refreshToken = hashParams.get('refresh_token');
   if (accessToken && refreshToken) {
-    await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-    document.getElementById('requestForm').style.display = 'none';
-    document.getElementById('updateForm').style.display = 'block';
+    try {
+      await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      document.getElementById('requestForm').style.display = 'none';
+      document.getElementById('updateForm').style.display = 'block';
+    } catch (err) {
+      console.warn('[reset] setSession failed:', err?.message || err);
+      document.getElementById('errorMsg').textContent = (err && err.message) ? err.message : 'Invalid or expired link. Request a new reset.';
+      document.getElementById('errorMsg').classList.add('show');
+    }
   }
 }
 
@@ -226,7 +236,7 @@ document.getElementById('updateForm')?.addEventListener('submit', async (e) => {
     successMsg.classList.add('show');
     setTimeout(() => { window.location.href = '/dashboard.html'; }, 1500);
   } catch (err) {
-    errorMsg.textContent = err.message || 'Failed to update password. Please try again.';
+    errorMsg.textContent = (err && err.message) ? err.message : 'Failed to update password. Please try again.';
     errorMsg.classList.add('show');
     loading.classList.remove('show');
     updateBtn.disabled = false;

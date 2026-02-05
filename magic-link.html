@@ -124,9 +124,13 @@ const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.__SUPABASE_AN
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // If already logged in, redirect to dashboard
-const { data: { session } } = await supabase.auth.getSession();
-if (session) {
-  window.location.href = '/dashboard.html';
+try {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (!error && session) {
+    window.location.replace('/dashboard.html');
+  }
+} catch (err) {
+  console.warn('[magic-link] getSession failed:', err?.message || err);
 }
 
 document.getElementById('magicForm').addEventListener('submit', async (e) => {
@@ -150,7 +154,7 @@ document.getElementById('magicForm').addEventListener('submit', async (e) => {
     successEl.classList.add('show');
     document.getElementById('email').value = '';
   } catch (err) {
-    errorEl.textContent = err?.message || 'Failed to send magic link. Please try again.';
+    errorEl.textContent = (err && err.message) ? err.message : 'Failed to send magic link. Please try again.';
     errorEl.classList.add('show');
   }
   loadingEl.classList.remove('show');

@@ -10,27 +10,20 @@ let supabaseClient = null;
 
 async function initSupabase() {
   if (supabaseClient) return supabaseClient;
-  
-  // Load Supabase JS from CDN
-  if (typeof window.supabase === 'undefined') {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-    script.type = 'module';
-    await new Promise((resolve, reject) => {
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-    
-    // Wait for supabase to be available
-    await new Promise(resolve => setTimeout(resolve, 100));
+
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const url = CONFIG.supabase.url;
+    const anonKey = CONFIG.supabase.anonKey;
+    if (!url || !anonKey || url === 'https://YOUR_PROJECT_ID.supabase.co' || anonKey === 'YOUR_PUBLIC_ANON_KEY') {
+      console.warn('[supabase-client] Supabase not configured (missing url or anonKey). Set auth/config.js or window.__SUPABASE_*');
+    }
+    supabaseClient = createClient(url, anonKey);
+    return supabaseClient;
+  } catch (err) {
+    console.warn('[supabase-client] init failed:', err?.message || err);
+    throw err;
   }
-  
-  // Initialize client
-  const { createClient } = window.supabase;
-  supabaseClient = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
-  
-  return supabaseClient;
 }
 
 // Get Supabase client instance

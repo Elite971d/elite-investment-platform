@@ -142,7 +142,16 @@ export async function runCalculatorGate(toolId, options = {}) {
   const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  let session, sessionError;
+  try {
+    const result = await supabase.auth.getSession();
+    session = result.data?.session;
+    sessionError = result.error;
+  } catch (e) {
+    sessionError = e;
+    session = null;
+    console.warn('[calculator-gate] getSession failed:', e?.message || e);
+  }
   if (sessionError || !session) {
     if (inIframe) {
       document.body.innerHTML = '<div style="font-family:sans-serif;padding:2rem;text-align:center;color:#333;max-width:400px;margin:2rem auto;">' +
@@ -158,9 +167,10 @@ export async function runCalculatorGate(toolId, options = {}) {
   const user = session.user;
   const role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
   const tierFromMeta = user?.user_metadata?.tier ?? user?.app_metadata?.tier ?? 'guest';
-  const tier = role === 'admin' ? 'admin' : tierFromMeta;
+  const tier = (role === 'admin' ? 'admin' : tierFromMeta) || 'guest';
 
   if (!canAccessTool(tier, toolId)) {
+    console.warn('[calculator-gate] tier mismatch: user tier=' + (tier || 'guest') + ', tool=' + toolId + ' requires ' + (TOOL_ACCESS[toolId] || '?'));
     window.location.replace(pricingUrl());
     return { allowed: false };
   }
@@ -187,6 +197,14 @@ export function runCalculatorGateFromScript() {
   runCalculatorGate(toolId).then(function (result) {
     if (result.allowed) {
       document.documentElement.classList.remove('esn-gate-pending');
+    }
+  }).catch(function (err) {
+    console.warn('[calculator-gate] run failed:', err?.message || err);
+    document.documentElement.classList.remove('esn-gate-pending');
+    if (window.top === window.self) {
+      window.location.replace(pricingUrl());
+    } else {
+      document.body.innerHTML = '<div style="font-family:sans-serif;padding:2rem;text-align:center;color:#333;">Something went wrong. <a href="' + loginUrl() + '">Log in</a></div>';
     }
   });
 }

@@ -74,7 +74,16 @@ export function prettyTier(tier) {
 export async function runAuthGuard(options = {}) {
   const { tool: requestedTool } = options;
 
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  let session, sessionError;
+  try {
+    const result = await supabase.auth.getSession();
+    session = result.data?.session;
+    sessionError = result.error;
+  } catch (e) {
+    sessionError = e;
+    session = null;
+    console.warn('[dealcheck/auth-guard] getSession failed:', e?.message || e);
+  }
   if (sessionError || !session) {
     const returnUrl = encodeURIComponent(window.location.href);
     window.location.replace(returnUrl ? `${LOGIN_URL}?redirect=${returnUrl}` : LOGIN_URL);
@@ -88,13 +97,14 @@ export async function runAuthGuard(options = {}) {
     .single();
 
   if (profileError || !profile) {
+    console.warn('[dealcheck/auth-guard] profile fetch failed:', profileError?.message || profileError);
     const returnUrl = encodeURIComponent(window.location.href);
     window.location.replace(LOGIN_URL + '?redirect=' + returnUrl);
     return { allowed: false };
   }
 
   // Role precedence: admin bypasses tier gating (logic override, no DB mutation)
-  const tier = profile.role === 'admin' ? 'admin' : (profile.tier || 'guest');
+  const tier = profile.role === 'admin' ? 'admin' : (profile.tier === undefined || profile.tier === null ? 'guest' : profile.tier);
 
   if (requestedTool) {
     const requiredTier = TOOL_ACCESS[requestedTool];

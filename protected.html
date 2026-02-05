@@ -200,7 +200,8 @@ const calculatorUrl = toolConfig ? toolConfig.path : (urlParams.get('url') || ur
 const requiredTier = toolConfig ? toolConfig.tier : (urlParams.get('tier') || 'starter');
 
 function canAccess(userTier, minTier) {
-  const userRank = TIER_RANK[userTier] || 0;
+  const u = userTier === undefined || userTier === null ? 'guest' : userTier;
+  const userRank = TIER_RANK[u] ?? 0;
   const requiredRank = TIER_RANK[minTier] ?? 999;
   return userRank >= requiredRank;
 }
@@ -258,9 +259,8 @@ function prettyTier(tier) {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (!session) {
-      loading.style.display = 'none';
-      error.style.display = 'flex';
-      errorMessage.textContent = 'You must be logged in to access calculators. Please log in and try again.';
+      const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.replace(redirect ? '/login.html?redirect=' + redirect : '/login.html');
       return;
     }
     
@@ -318,12 +318,18 @@ function prettyTier(tier) {
     calculatorFrame.classList.add('show');
     
   } catch (err) {
-    console.error('Error:', err);
+    console.warn('[protected] verify failed:', err?.message || err);
     loading.style.display = 'none';
     error.style.display = 'flex';
-    errorMessage.textContent = err.message || 'An error occurred while verifying access. Please try again.';
+    errorMessage.textContent = (err && err.message) ? err.message : 'An error occurred while verifying access. Please try again.';
+    return;
   }
-})();
+})().catch((err) => {
+  console.warn('[protected] init failed:', err?.message || err);
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error').style.display = 'flex';
+  document.getElementById('errorMessage').textContent = 'Something went wrong. Please try again or log in.';
+});
 </script>
 
 </body>
