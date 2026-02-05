@@ -331,20 +331,51 @@ body{
       <h2 style="margin-bottom:16px;font-family:'Playfair Display',serif;">User Details</h2>
       <div class="user-info">
         <div class="info-item"><div class="info-label">Email</div><div class="info-value" id="userEmail">-</div></div>
-        <div class="info-item"><div class="info-label">Current Tier</div><div class="info-value" id="currentTier">-</div></div>
+        <div class="info-item"><div class="info-label">Profile Tier</div><div class="info-value" id="currentTier">-</div></div>
         <div class="info-item"><div class="info-label">Role</div><div class="info-value" id="userRole">-</div></div>
         <div class="info-item"><div class="info-label">Member Since</div><div class="info-value" id="memberSince">-</div></div>
       </div>
+      <!-- Active tier override badge -->
+      <div id="activeOverrideBlock" class="override-badge-block" style="display:none; margin:16px 0; padding:14px; background:rgba(212,175,55,.12); border:1px solid var(--border); border-radius:14px;">
+        <div class="info-label" style="margin-bottom:6px;">Active tier override</div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;">
+          <span id="activeOverrideTier" class="pill" style="font-weight:600;"></span>
+          <span id="activeOverrideExpiry" style="color:var(--muted);font-size:0.9rem;"></span>
+          <button type="button" class="btn danger" id="removeOverrideBtn">Remove override</button>
+        </div>
+      </div>
+      <!-- Set tier override -->
+      <div class="tier-selector" style="margin-top:20px; padding-top:20px; border-top:1px solid rgba(255,255,255,.1);">
+        <label style="display:block;margin-bottom:10px;font-weight:600;">Set tier override (optional expiry)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px;">
+          <div style="min-width:160px;">
+            <label for="overrideTierSelect" style="font-size:0.85rem;color:var(--muted);">Override tier</label>
+            <select id="overrideTierSelect" class="tier-select">
+              <option value="guest">Guest</option>
+              <option value="starter">Starter</option>
+              <option value="serious">Serious</option>
+              <option value="elite">Elite</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:180px;">
+            <label for="overrideReasonInput" style="font-size:0.85rem;color:var(--muted);">Reason</label>
+            <input type="text" class="search-input" id="overrideReasonInput" placeholder="e.g. Support ticket #123">
+          </div>
+          <div style="min-width:180px;">
+            <label for="overrideExpiresAt" style="font-size:0.85rem;color:var(--muted);">Expires (optional)</label>
+            <input type="datetime-local" class="search-input" id="overrideExpiresAt">
+          </div>
+          <button type="button" class="btn primary" id="applyOverrideBtn">Apply override</button>
+        </div>
+      </div>
+      <!-- Update profile tier (base) -->
       <div class="tier-selector">
-        <label for="tierSelect">Update Tier</label>
+        <label for="tierSelect">Update profile tier (base)</label>
         <select id="tierSelect" class="tier-select">
           <option value="guest">Guest</option>
           <option value="starter">Starter Investor ($29/mo)</option>
           <option value="serious">Serious Investor ($79/mo)</option>
           <option value="elite">Elite / Pro ($149/mo)</option>
-          <option value="academy_starter">Academy Starter ($500)</option>
-          <option value="academy_pro">Academy Pro ($999)</option>
-          <option value="academy_premium">Academy Premium ($1499)</option>
         </select>
       </div>
       <div class="tier-selector">
@@ -352,7 +383,7 @@ body{
         <input type="text" class="search-input" id="reasonInput" placeholder="e.g. Support ticket #123" required>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <button class="btn primary" id="saveBtn">Save Tier</button>
+        <button class="btn primary" id="saveBtn">Save profile tier</button>
         <button class="btn" id="cancelBtn">Cancel</button>
       </div>
     </section>
@@ -381,9 +412,11 @@ body{
       <div class="search-form" style="margin-bottom:16px;">
         <select id="auditActionFilter" class="search-input" style="max-width:200px;">
           <option value="">All actions</option>
+          <option value="TIER_CHANGE">TIER_CHANGE</option>
+          <option value="TIER_OVERRIDE_SET">TIER_OVERRIDE_SET</option>
+          <option value="TIER_OVERRIDE_REMOVED">TIER_OVERRIDE_REMOVED</option>
           <option value="GRANT">GRANT</option>
           <option value="REVOKE">REVOKE</option>
-          <option value="TIER_CHANGE">TIER_CHANGE</option>
         </select>
         <input type="email" class="search-input" id="auditTargetEmail" placeholder="Target email" style="max-width:220px;">
         <input type="date" class="search-input" id="auditDateFrom" style="max-width:160px;">
@@ -398,11 +431,7 @@ body{
               <th style="text-align:left;padding:10px;">Action</th>
               <th style="text-align:left;padding:10px;">Actor</th>
               <th style="text-align:left;padding:10px;">Target</th>
-              <th style="text-align:left;padding:10px;">Scope</th>
-              <th style="text-align:left;padding:10px;">Tool</th>
-              <th style="text-align:left;padding:10px;">Previous</th>
-              <th style="text-align:left;padding:10px;">New</th>
-              <th style="text-align:left;padding:10px;">Reason</th>
+              <th style="text-align:left;padding:10px;">Details</th>
             </tr>
           </thead>
           <tbody id="auditTableBody"></tbody>
@@ -466,6 +495,8 @@ body{
 <script type="module">
 // Load Supabase from CDN
 const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+const { getMemberTools } = await import('./js/tools-config.js');
+const { getInternalTools } = await import('./js/tools-config.js');
 
 // Config: auth/config.js (window) or build env, then placeholder
 const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
@@ -487,15 +518,9 @@ function prettyTier(tier) {
   return names[tier] || tier;
 }
 
-// Check if user is admin
-async function isAdmin(userId) {
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', userId)
-    .single();
-  
-  return profile?.role === 'admin';
+// Admin = user_metadata.role OR app_metadata.role (no DB lookup)
+function isAdmin(user) {
+  return user?.user_metadata?.role === 'admin' || user?.app_metadata?.role === 'admin';
 }
 
 // Show message
@@ -558,23 +583,31 @@ function renderOverridePanel() {
       }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      try {
-        const res = await fetch('/api/admin/grant-entitlement', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-          body: JSON.stringify({ target_email: email, product_key: productKey, reason, internal_tool: true })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          showMessage(data.error || 'Failed to grant internal access', 'error');
-          return;
-        }
-        showMessage('Internal access granted.', 'success');
-        card.querySelector('.internal-email').value = '';
-        card.querySelector('.internal-reason').value = '';
-      } catch (e) {
-        showMessage('Request failed.', 'error');
+      const { data: profile } = await supabase.from('member_profiles').select('id').eq('email', email).single();
+      if (!profile?.id) {
+        showMessage('User not found in member_profiles.', 'error');
+        return;
       }
+      const { error: err } = await supabase.from('entitlements').insert({
+        user_id: profile.id,
+        email,
+        product_key: productKey,
+        status: 'active',
+        source: 'admin_internal'
+      });
+      if (err) {
+        showMessage('Failed to grant: ' + err.message, 'error');
+        return;
+      }
+      await supabase.from('audit_logs').insert({
+        actor_id: session.user.id,
+        action: 'GRANT',
+        target_user_id: profile.id,
+        meta: { product_key: productKey, reason, target_email: email, actor_email: session.user.email }
+      });
+      showMessage('Internal access granted.', 'success');
+      card.querySelector('.internal-email').value = '';
+      card.querySelector('.internal-reason').value = '';
     });
   });
 
@@ -590,23 +623,30 @@ function renderOverridePanel() {
       }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      try {
-        const res = await fetch('/api/admin/revoke-entitlement', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-          body: JSON.stringify({ target_email: email, product_key: productKey, reason })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          showMessage(data.error || 'Failed to revoke (ensure /api/admin/revoke-entitlement exists)', 'error');
-          return;
-        }
-        showMessage('Internal access revoked.', 'success');
-        card.querySelector('.internal-email').value = '';
-        card.querySelector('.internal-reason').value = '';
-      } catch (e) {
-        showMessage('Request failed.', 'error');
+      const { data: profile } = await supabase.from('member_profiles').select('id').eq('email', email).single();
+      if (!profile?.id) {
+        showMessage('User not found in member_profiles.', 'error');
+        return;
       }
+      const { data: rows } = await supabase.from('entitlements').select('id').eq('user_id', profile.id).eq('product_key', productKey).eq('status', 'active');
+      if (!rows || rows.length === 0) {
+        showMessage('No active entitlement found to revoke.', 'error');
+        return;
+      }
+      const { error: err } = await supabase.from('entitlements').update({ status: 'canceled' }).eq('user_id', profile.id).eq('product_key', productKey);
+      if (err) {
+        showMessage('Failed to revoke: ' + err.message, 'error');
+        return;
+      }
+      await supabase.from('audit_logs').insert({
+        actor_id: session.user.id,
+        action: 'REVOKE',
+        target_user_id: profile.id,
+        meta: { product_key: productKey, reason, target_email: email, actor_email: session.user.email }
+      });
+      showMessage('Internal access revoked.', 'success');
+      card.querySelector('.internal-email').value = '';
+      card.querySelector('.internal-reason').value = '';
     });
   });
 }
@@ -636,10 +676,8 @@ function escapeHtmlAttr(s) {
     return;
   }
   
-  // Check admin role
-  const userIsAdmin = await isAdmin(session.user.id);
-  
-  if (!userIsAdmin) {
+  // Check admin from auth metadata only
+  if (!isAdmin(session.user)) {
     loading.style.display = 'none';
     accessDenied.style.display = 'block';
     return;
@@ -651,72 +689,160 @@ function escapeHtmlAttr(s) {
   document.getElementById('adminEmail').textContent = session.user.email;
   renderOverridePanel();
   
-  // Search form handler
+  // Current searched user id (for override/save)
+  let currentUserId = null;
+
+  // Load active override for user and show badge
+  async function loadActiveOverride(userId) {
+    const now = new Date().toISOString();
+    const { data: rows } = await supabase
+      .from('tier_overrides')
+      .select('id, override_tier, reason, expires_at, created_at')
+      .eq('user_id', userId)
+      .or('expires_at.is.null,expires_at.gt.' + now)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const override = rows && rows[0] ? rows[0] : null;
+    const block = document.getElementById('activeOverrideBlock');
+    if (override) {
+      block.style.display = 'block';
+      document.getElementById('activeOverrideTier').textContent = prettyTier(override.override_tier);
+      document.getElementById('activeOverrideExpiry').textContent = override.expires_at
+        ? 'Expires: ' + new Date(override.expires_at).toLocaleString()
+        : 'No expiry';
+    } else {
+      block.style.display = 'none';
+    }
+    return override;
+  }
+
+  // Search form handler (member_profiles)
   document.getElementById('searchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('emailInput').value.trim().toLowerCase();
-    
     if (!email) return;
-    
-    // Search for user by email
+
     const { data: profile, error } = await supabase
-      .from('profiles')
+      .from('member_profiles')
       .select('*')
       .eq('email', email)
       .single();
-    
+
     if (error || !profile) {
-      showMessage('User not found. Please check the email address.', 'error');
+      showMessage('User not found. Check the email or ensure member_profiles exists.', 'error');
       document.getElementById('userCard').classList.remove('show');
       return;
     }
-    
-    // Show user card
+
+    currentUserId = profile.id;
     document.getElementById('userEmail').textContent = profile.email;
     document.getElementById('currentTier').textContent = prettyTier(profile.tier || 'guest');
     document.getElementById('userRole').textContent = profile.role || 'user';
-    
-    if (profile.created_at) {
-      const date = new Date(profile.created_at);
-      document.getElementById('memberSince').textContent = date.toLocaleDateString();
-    } else {
-      document.getElementById('memberSince').textContent = '-';
-    }
-    
-    // Set tier selector
+    document.getElementById('memberSince').textContent = profile.created_at
+      ? new Date(profile.created_at).toLocaleDateString()
+      : '-';
     document.getElementById('tierSelect').value = profile.tier || 'guest';
-    
+
+    await loadActiveOverride(profile.id);
     document.getElementById('userCard').classList.add('show');
-    showMessage('User found!');
+    showMessage('User found.');
   });
   
-  // Save tier via API (writes audit_log)
-  document.getElementById('saveBtn').addEventListener('click', async () => {
-    const email = document.getElementById('emailInput').value.trim().toLowerCase();
-    const newTier = document.getElementById('tierSelect').value;
-    const reason = document.getElementById('reasonInput').value.trim() || null;
-    if (!email) {
-      showMessage('Please search for a user first.', 'error');
+  // Apply tier override (Supabase only)
+  document.getElementById('applyOverrideBtn').addEventListener('click', async () => {
+    if (!currentUserId) {
+      showMessage('Search for a user first.', 'error');
       return;
     }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    try {
-      const res = await fetch('/api/admin/tier-override', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-        body: JSON.stringify({ target_email: email, new_tier: newTier, reason: reason || null })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        showMessage(data.error || 'Failed to update tier', 'error');
-        return;
-      }
-      document.getElementById('currentTier').textContent = prettyTier(newTier);
-      showMessage('Tier updated and audit log written.', 'success');
-    } catch (e) {
-      showMessage('Request failed.', 'error');
+    const overrideTier = document.getElementById('overrideTierSelect').value;
+    const reason = document.getElementById('overrideReasonInput').value.trim() || null;
+    const expiresVal = document.getElementById('overrideExpiresAt').value;
+    const expires_at = expiresVal ? new Date(expiresVal).toISOString() : null;
+    const email = document.getElementById('emailInput').value.trim().toLowerCase();
+
+    const { error: err1 } = await supabase.from('tier_overrides').insert({
+      user_id: currentUserId,
+      override_tier: overrideTier,
+      reason: reason,
+      expires_at: expires_at,
+      created_by: session.user.id
+    });
+    if (err1) {
+      showMessage('Failed to set override: ' + err1.message, 'error');
+      return;
     }
+    const { error: err2 } = await supabase.from('audit_logs').insert({
+      actor_id: session.user.id,
+      action: 'TIER_OVERRIDE_SET',
+      target_user_id: currentUserId,
+      meta: { override_tier: overrideTier, reason: reason, expires_at: expires_at, target_email: email, actor_email: session.user.email }
+    });
+    if (err2) showMessage('Override set but audit log failed: ' + err2.message, 'error');
+    else showMessage('Override applied and logged.', 'success');
+    await loadActiveOverride(currentUserId);
+    document.getElementById('overrideReasonInput').value = '';
+    document.getElementById('overrideExpiresAt').value = '';
+  });
+
+  // Remove tier override (delete row + audit)
+  document.getElementById('removeOverrideBtn').addEventListener('click', async () => {
+    if (!currentUserId) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const email = document.getElementById('emailInput').value.trim().toLowerCase();
+
+    const { data: overrides } = await supabase.from('tier_overrides').select('id').eq('user_id', currentUserId).or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
+    if (!overrides || overrides.length === 0) {
+      showMessage('No active override to remove.', 'error');
+      return;
+    }
+    const { error: err1 } = await supabase.from('tier_overrides').delete().eq('user_id', currentUserId);
+    if (err1) {
+      showMessage('Failed to remove override: ' + err1.message, 'error');
+      return;
+    }
+    await supabase.from('audit_logs').insert({
+      actor_id: session.user.id,
+      action: 'TIER_OVERRIDE_REMOVED',
+      target_user_id: currentUserId,
+      meta: { target_email: email, actor_email: session.user.email }
+    });
+    showMessage('Override removed and logged.', 'success');
+    await loadActiveOverride(currentUserId);
+  });
+
+  // Save profile tier (member_profiles + audit_logs, no API)
+  document.getElementById('saveBtn').addEventListener('click', async () => {
+    if (!currentUserId) {
+      showMessage('Search for a user first.', 'error');
+      return;
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const newTier = document.getElementById('tierSelect').value;
+    const reason = document.getElementById('reasonInput').value.trim();
+    if (!reason) {
+      showMessage('Reason is required for audit.', 'error');
+      return;
+    }
+    const email = document.getElementById('emailInput').value.trim().toLowerCase();
+
+    const { error: err1 } = await supabase.from('member_profiles').update({ tier: newTier, updated_at: new Date().toISOString() }).eq('id', currentUserId);
+    if (err1) {
+      showMessage('Failed to update profile tier: ' + err1.message, 'error');
+      return;
+    }
+    const { error: err2 } = await supabase.from('audit_logs').insert({
+      actor_id: session.user.id,
+      action: 'TIER_CHANGE',
+      target_user_id: currentUserId,
+      meta: { new_tier: newTier, reason: reason, target_email: email, actor_email: session.user.email }
+    });
+    if (err2) showMessage('Profile updated but audit log failed: ' + err2.message, 'error');
+    else showMessage('Profile tier updated and logged.', 'success');
+    document.getElementById('currentTier').textContent = prettyTier(newTier);
   });
 
   document.getElementById('cancelBtn').addEventListener('click', () => {
@@ -739,7 +865,7 @@ function escapeHtmlAttr(s) {
     });
   });
 
-  // Audit log load (RLS: admins can read)
+  // Audit log load (audit_logs table; RLS: admins can read)
   document.getElementById('auditLoadBtn').addEventListener('click', async () => {
     const action = document.getElementById('auditActionFilter').value;
     const targetEmail = document.getElementById('auditTargetEmail').value.trim();
@@ -749,34 +875,32 @@ function escapeHtmlAttr(s) {
     const loadingEl = document.getElementById('auditLoading');
     tbody.innerHTML = '';
     loadingEl.style.display = 'block';
-    let query = supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(200);
-    if (action) query = query.eq('action_type', action);
-    if (targetEmail) query = query.eq('target_email', targetEmail);
+    let query = supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(500);
+    if (action) query = query.eq('action', action);
     if (dateFrom) query = query.gte('created_at', dateFrom + 'T00:00:00Z');
     if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59Z');
-    const { data: rows, error } = await query;
+    const { data: rawRows, error } = await query;
+    let rows = rawRows || [];
+    if (targetEmail) rows = rows.filter(r => (r.meta && (r.meta.target_email || '').toLowerCase().includes(targetEmail.toLowerCase())));
     loadingEl.style.display = 'none';
     if (error) {
       showMessage('Failed to load audit log: ' + error.message, 'error');
       return;
     }
     (rows || []).forEach(r => {
+      const meta = r.meta || {};
       const tr = document.createElement('tr');
       tr.style.borderBottom = '1px solid rgba(255,255,255,.08)';
       tr.innerHTML = '<td style="padding:10px;">' + new Date(r.created_at).toLocaleString() + '</td>' +
-        '<td style="padding:10px;">' + (r.action_type || '-') + '</td>' +
-        '<td style="padding:10px;">' + (r.actor_email || '-') + '</td>' +
-        '<td style="padding:10px;">' + (r.target_email || '-') + '</td>' +
-        '<td style="padding:10px;">' + (r.tool_scope || '-') + '</td>' +
-        '<td style="padding:10px;">' + (r.tool_name || '-') + '</td>' +
-        '<td style="padding:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtmlAttr(r.previous_value || '') + '">' + (r.previous_value || '-') + '</td>' +
-        '<td style="padding:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtmlAttr(r.new_value || '') + '">' + (r.new_value || '-') + '</td>' +
-        '<td style="padding:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtmlAttr(r.reason || '') + '">' + (r.reason || '-') + '</td>';
+        '<td style="padding:10px;">' + escapeHtmlAttr(r.action || '-') + '</td>' +
+        '<td style="padding:10px;">' + escapeHtmlAttr(meta.actor_email || r.actor_id || '-') + '</td>' +
+        '<td style="padding:10px;">' + escapeHtmlAttr(meta.target_email || r.target_user_id || '-') + '</td>' +
+        '<td style="padding:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtmlAttr(JSON.stringify(meta)) + '">' + escapeHtmlAttr(meta.reason || meta.override_tier || '-') + '</td>';
       tbody.appendChild(tr);
     });
   });
 
-  // Grant entitlement (member products; reason required)
+  // Grant entitlement via Supabase (member products; reason required)
   document.getElementById('grantForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('grantEmail').value.trim().toLowerCase();
@@ -790,24 +914,34 @@ function escapeHtmlAttr(s) {
     }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    try {
-      const res = await fetch('/api/admin/grant-entitlement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-        body: JSON.stringify({ target_email: email, product_key, expires_at, reason })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        showMessage(data.error || 'Failed to grant entitlement', 'error');
-        return;
-      }
-      showMessage('Entitlement granted.', 'success');
-      document.getElementById('grantEmail').value = '';
-      document.getElementById('grantExpiresAt').value = '';
-      document.getElementById('grantReason').value = '';
-    } catch (err) {
-      showMessage('Request failed.', 'error');
+    const { data: profile } = await supabase.from('member_profiles').select('id').eq('email', email).single();
+    const user_id = profile?.id || null;
+    if (!user_id) {
+      showMessage('User not found in member_profiles. They must sign in once first.', 'error');
+      return;
     }
+    const { error: err1 } = await supabase.from('entitlements').insert({
+      user_id,
+      email,
+      product_key,
+      status: 'active',
+      expires_at: expires_at || null,
+      source: 'admin_grant'
+    });
+    if (err1) {
+      showMessage('Failed to grant: ' + err1.message, 'error');
+      return;
+    }
+    await supabase.from('audit_logs').insert({
+      actor_id: session.user.id,
+      action: 'GRANT',
+      target_user_id: user_id,
+      meta: { product_key, reason, target_email: email, actor_email: session.user.email }
+    });
+    showMessage('Entitlement granted.', 'success');
+    document.getElementById('grantEmail').value = '';
+    document.getElementById('grantExpiresAt').value = '';
+    document.getElementById('grantReason').value = '';
   });
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
