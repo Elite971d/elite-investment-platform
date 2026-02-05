@@ -15,7 +15,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
 -- ADMIN RLS POLICIES
 -- ============================================
 
--- Admins can view all profiles
+DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
 CREATE POLICY "Admins can view all profiles"
   ON profiles FOR SELECT
   USING (
@@ -28,7 +28,7 @@ CREATE POLICY "Admins can view all profiles"
     )
   );
 
--- Admins can update any profile
+DROP POLICY IF EXISTS "Admins can update any profile" ON profiles;
 CREATE POLICY "Admins can update any profile"
   ON profiles FOR UPDATE
   USING (
@@ -41,7 +41,7 @@ CREATE POLICY "Admins can update any profile"
     )
   );
 
--- Admins can view all payments (for support)
+DROP POLICY IF EXISTS "Admins can view all payments" ON payments;
 CREATE POLICY "Admins can view all payments"
   ON payments FOR SELECT
   USING (
