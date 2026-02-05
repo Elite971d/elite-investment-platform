@@ -338,8 +338,8 @@ const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.__SUPABASE_AN
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Tier configuration
-const TIER_RANK = { guest:0, starter:1, serious:2, elite:3, academy_starter:1, academy_pro:2, academy_premium:3 };
+// Tier configuration (admin = role override, full access)
+const TIER_RANK = { guest:0, starter:1, serious:2, elite:3, academy_starter:1, academy_pro:2, academy_premium:3, admin:999 };
 const SQUARE_LINKS = {
   starter: 'https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/5L6KRBG7XEBJWAM3QQTKTQRM',
   serious: 'https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/7YCAILWUHUOSLA4AB4FDON63',
@@ -356,7 +356,8 @@ function prettyTier(t){
     elite: 'Elite / Pro',
     academy_starter: 'Academy Starter',
     academy_pro: 'Academy Pro',
-    academy_premium: 'Academy Premium'
+    academy_premium: 'Academy Premium',
+    admin: 'Admin'
   };
   return names[t] || t;
 }
@@ -398,9 +399,11 @@ function renderTools(userTier, entitlements, expired) {
   const grid = document.getElementById('toolsGrid');
   grid.innerHTML = '';
   const effectiveTier = expired ? 'guest' : userTier;
-  
-  document.getElementById('tierLabel').textContent = prettyTier(userTier);
-  document.getElementById('accountTier').textContent = prettyTier(userTier);
+  // Admin: show "Full" for access, never "Guest"
+  const displayTier = effectiveTier === 'admin' ? 'Full' : prettyTier(effectiveTier);
+
+  document.getElementById('tierLabel').textContent = displayTier;
+  document.getElementById('accountTier').textContent = displayTier;
   
   document.getElementById('starterLink').href = SQUARE_LINKS.starter;
   document.getElementById('seriousLink').href = SQUARE_LINKS.serious;
@@ -465,9 +468,10 @@ function initTabs() {
   document.getElementById('accountEmail').textContent = user.email;
   
   const { data: profile, error } = await getUserProfile(user.id);
-  const userTier = profile?.tier || 'guest';
+  // Role precedence: admin bypasses tier gating (logic override, no DB mutation)
+  const effectiveTier = profile?.role === 'admin' ? 'admin' : (profile?.tier || 'guest');
   document.getElementById('accountRole').textContent = profile?.role || 'user';
-  
+
   if (profile?.role === 'admin') {
     document.getElementById('adminLink').style.display = 'inline-flex';
   }
@@ -511,11 +515,12 @@ function initTabs() {
       .eq('user_id', user.id);
     entitlements = ent || [];
   } catch (e) {}
-  var expired = userTier !== 'guest' && !hasValidEntitlement(entitlements) && entitlements.some(function (e) { return e.expires_at; });
-  renderTools(userTier, entitlements, expired);
-  
-  // Check academy access
-  const hasAcademyAccess = ['elite', 'academy_starter', 'academy_pro', 'academy_premium'].includes(userTier);
+  // Admins never have "expired" access
+  var expired = effectiveTier !== 'admin' && effectiveTier !== 'guest' && !hasValidEntitlement(entitlements) && entitlements.some(function (e) { return e.expires_at; });
+  renderTools(effectiveTier, entitlements, expired);
+
+  // Check academy access (admin has full access)
+  const hasAcademyAccess = ['admin', 'elite', 'academy_starter', 'academy_pro', 'academy_premium'].includes(effectiveTier);
   if (!hasAcademyAccess) {
     document.getElementById('academyLink').style.opacity = '0.6';
     document.getElementById('academyLink').style.pointerEvents = 'none';

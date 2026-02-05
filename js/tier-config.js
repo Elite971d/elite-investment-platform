@@ -89,6 +89,12 @@ export const TIER_HIERARCHY = {
       'Deal reviews'
     ],
     squareLinkId: 'OYTJWURAXGUWHPHPPMNOYYKI'
+  },
+  admin: {
+    rank: 999,
+    name: 'Admin',
+    price: 0,
+    features: ['Full access (role override)']
   }
 };
 

@@ -25,7 +25,7 @@ export const TOOL_ACCESS = {
   commercial: 'serious'
 };
 
-/** Tier rank for comparison (higher = more access) */
+/** Tier rank for comparison (higher = more access). admin = role override, full access. */
 const TIER_RANK = {
   guest: 0,
   starter: 1,
@@ -33,7 +33,8 @@ const TIER_RANK = {
   elite: 3,
   academy_starter: 1,
   academy_pro: 2,
-  academy_premium: 3
+  academy_premium: 3,
+  admin: 999
 };
 
 const TIER_NAMES = {
@@ -43,7 +44,8 @@ const TIER_NAMES = {
   elite: 'Elite / Pro',
   academy_starter: 'Academy Starter',
   academy_pro: 'Academy Pro',
-  academy_premium: 'Academy Premium'
+  academy_premium: 'Academy Premium',
+  admin: 'Admin'
 };
 
 export function canAccessTier(userTier, requiredTier) {
@@ -90,7 +92,8 @@ export async function runAuthGuard(options = {}) {
     return { allowed: false };
   }
 
-  const tier = profile.tier || 'guest';
+  // Role precedence: admin bypasses tier gating (logic override, no DB mutation)
+  const tier = profile.role === 'admin' ? 'admin' : (profile.tier || 'guest');
 
   if (requestedTool) {
     const requiredTier = TOOL_ACCESS[requestedTool];

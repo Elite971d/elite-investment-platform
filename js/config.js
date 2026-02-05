@@ -21,7 +21,7 @@ const CONFIG = {
     'OYTJWURAXGUWHPHPPMNOYYKI': 'academy_premium'
   },
   
-  // Tier hierarchy for access control
+  // Tier hierarchy for access control (admin = logic override, highest rank)
   tierRank: {
     guest: 0,
     starter: 1,
@@ -29,7 +29,8 @@ const CONFIG = {
     elite: 3,
     academy_starter: 1,
     academy_pro: 2,
-    academy_premium: 3
+    academy_premium: 3,
+    admin: 999  // Role override: bypasses tier gating; not stored in DB
   },
   
   // Square Payment Links (for upgrade CTAs)
@@ -62,7 +63,10 @@ function prettyTier(tier) {
     elite: 'Elite / Pro',
     academy_starter: 'Academy Starter',
     academy_pro: 'Academy Pro',
-    academy_premium: 'Academy Premium'
+    academy_premium: 'Academy Premium',
+    admin: 'Admin'
   };
   return names[tier] || tier;
 }
+
+export { CONFIG, prettyTier };

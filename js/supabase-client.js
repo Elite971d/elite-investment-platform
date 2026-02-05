@@ -38,6 +38,9 @@ export async function getSupabase() {
   return await initSupabase();
 }
 
+// Alias for admin-utils compatibility
+export const getSupabaseClient = getSupabase;
+
 // Check if user is authenticated
 export async function isAuthenticated() {
   const supabase = await getSupabase();

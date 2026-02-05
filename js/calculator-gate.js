@@ -50,7 +50,8 @@ const TIER_RANK = {
   elite: 3,
   academy_starter: 1,
   academy_pro: 2,
-  academy_premium: 3
+  academy_premium: 3,
+  admin: 999  // Role override: bypasses tier gating
 };
 
 function canAccessTier(userTier, requiredTier) {
@@ -171,7 +172,8 @@ export async function runCalculatorGate(toolId, options = {}) {
     return { allowed: false };
   }
 
-  const tier = profile.tier || 'guest';
+  // Role precedence: admin bypasses tier gating (logic override, no DB mutation)
+  const tier = profile.role === 'admin' ? 'admin' : (profile.tier || 'guest');
   if (!canAccessTool(tier, toolId)) {
     window.location.replace(pricingUrl());
     return { allowed: false };

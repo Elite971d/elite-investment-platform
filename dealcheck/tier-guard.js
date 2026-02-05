@@ -8,6 +8,7 @@ import { supabase } from './supabase.js';
 const PRICING_URL = 'https://invest.elitesolutionsnetwork.com/index.html';
 
 // Tier hierarchy configuration (higher number = more access)
+// admin = logic override, bypasses tier gating; not stored in DB
 const TIER_RANK = {
   guest: 0,
   starter: 1,
@@ -15,7 +16,8 @@ const TIER_RANK = {
   elite: 3,
   academy_starter: 1,
   academy_pro: 2,
-  academy_premium: 3
+  academy_premium: 3,
+  admin: 999
 };
 
 const TIER_NAMES = {
@@ -25,7 +27,8 @@ const TIER_NAMES = {
   elite: 'Elite / Pro',
   academy_starter: 'Academy Starter',
   academy_pro: 'Academy Pro',
-  academy_premium: 'Academy Premium'
+  academy_premium: 'Academy Premium',
+  admin: 'Admin'
 };
 
 export function canAccessTier(userTier, requiredTier) {
@@ -43,13 +46,23 @@ async function getUserProfile(userId) {
   return { data, error };
 }
 
+/**
+ * Resolve effective tier for access control.
+ * Role takes precedence over stored tier (logic override, no DB mutation).
+ */
+function resolveEffectiveTier(profile) {
+  if (!profile) return 'guest';
+  if (profile.role === 'admin') return 'admin';
+  return profile.tier || 'guest';
+}
+
 export async function getUserTier() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return 'guest';
     const { data: profile, error } = await getUserProfile(user.id);
     if (error || !profile) return 'guest';
-    return profile.tier || 'guest';
+    return resolveEffectiveTier(profile);
   } catch (err) {
     console.error('Error getting user tier:', err);
     return 'guest';

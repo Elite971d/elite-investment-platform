@@ -12,16 +12,29 @@ export function canAccessTier(userTier, requiredTier) {
   return userRank >= requiredRank;
 }
 
-// Get user's current tier from profile
+/**
+ * Resolve effective tier for access control.
+ * Role takes precedence over stored tier (logic override, no DB mutation).
+ * - If role === 'admin' → effectiveTier = 'admin' (full access)
+ * - Else if profile.tier exists → use profile.tier
+ * - Else → 'guest'
+ */
+export function resolveEffectiveTier(profile) {
+  if (!profile) return 'guest';
+  if (profile.role === 'admin') return 'admin';
+  return profile.tier || 'guest';
+}
+
+// Get user's effective tier (used for access control; admin bypasses tier gating)
 export async function getUserTier() {
   try {
     const user = await getCurrentUser();
     if (!user) return 'guest';
-    
+
     const { data: profile, error } = await getUserProfile(user.id);
     if (error || !profile) return 'guest';
-    
-    return profile.tier || 'guest';
+
+    return resolveEffectiveTier(profile);
   } catch (err) {
     console.error('Error getting user tier:', err);
     return 'guest';

@@ -188,7 +188,8 @@ const TOOL_MAP = {
 
 const TIER_RANK = {
   guest: 0, starter: 1, serious: 2, elite: 3,
-  academy_starter: 1, academy_pro: 2, academy_premium: 3
+  academy_starter: 1, academy_pro: 2, academy_premium: 3,
+  admin: 999  // Role override: bypasses tier gating
 };
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -211,7 +212,8 @@ function prettyTier(tier) {
     elite: 'Elite / Pro',
     academy_starter: 'Academy Starter',
     academy_pro: 'Academy Pro',
-    academy_premium: 'Academy Premium'
+    academy_premium: 'Academy Premium',
+    admin: 'Admin'
   };
   return names[tier] || tier;
 }
@@ -271,9 +273,10 @@ function prettyTier(tier) {
     if (profileError || !profile) {
       throw new Error('Unable to load profile');
     }
-    
-    const userTier = profile.tier || 'guest';
-    
+
+    // Role precedence: admin bypasses tier gating (logic override, no DB mutation)
+    const userTier = profile.role === 'admin' ? 'admin' : (profile.tier || 'guest');
+
     // Check tier access — redirect to pricing for unauthorized tier
     if (!canAccess(userTier, requiredTier)) {
       window.location.replace('/index.html');
@@ -288,13 +291,15 @@ function prettyTier(tier) {
     }
 
     // Optional: check active entitlements not expired (server is source of truth; this is UX)
+    // Admins bypass entitlement check (full access)
+    const isAdmin = profile.role === 'admin';
     const { data: entitlements } = await supabase
       .from('entitlements')
       .select('id, expires_at, status')
       .eq('user_id', session.user.id)
       .eq('status', 'active');
     const now = new Date().toISOString();
-    const hasValidEntitlement = (entitlements || []).some(
+    const hasValidEntitlement = isAdmin || (entitlements || []).some(
       (e) => !e.expires_at || e.expires_at > now
     );
     if (!hasValidEntitlement && (entitlements || []).length > 0) {
