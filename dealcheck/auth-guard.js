@@ -14,15 +14,16 @@ const INVEST_ORIGIN = 'https://invest.elitesolutionsnetwork.com';
 const LOGIN_URL = INVEST_ORIGIN + '/login.html';
 const PRICING_URL = INVEST_ORIGIN + '/index.html';
 
-/** Tool ID → minimum required tier (tier matrix only; no internal tools) */
+/** Tool ID → minimum required tier (tier matrix only; no internal tools). starter: offer, brrrr | serious: + dealcheck, rehab, pwt, wholesale | elite: + commercial */
 export const TOOL_ACCESS = {
   offer: 'starter',
   brrrr: 'starter',
+  dealcheck: 'serious',
   rehab: 'serious',
   rehabtracker: 'serious',
   pwt: 'serious',
-  dealcheck: 'starter',
-  commercial: 'serious'
+  wholesale: 'serious',
+  commercial: 'elite'
 };
 
 /** Tier rank for comparison (higher = more access). admin = role override, full access. */

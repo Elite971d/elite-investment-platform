@@ -5,15 +5,23 @@
 //
 // • Member tools: Shown in dashboard, gated by tier, appear in pricing.
 // • Internal tools: Admin-only grant/revoke, NEVER in dashboard or pricing.
+//
+// Explicit tier matrix (calculators only):
+//   guest:   none
+//   starter: Property Offer Calculator, BRRRR Analyzer
+//   serious: starter + DealCheck Analyzer, Rehab Tracker, Property Walkthrough Tool, Wholesale Analyzer
+//   elite:   serious + Commercial Analyzer
+//   admin:   everything (role override)
 
 /** Member tools — calculators and academy. Used by dashboard and pricing only. */
 export const MEMBER_TOOLS = [
-  { id: 'offer', name: 'Property Offer Calculator', minTier: 'starter', pills: ['Offer', 'MAO', 'Comps'] },
-  { id: 'brrrr', name: 'BRRRR Analyzer', minTier: 'starter', pills: ['BRRRR', 'Refi', 'ROI'] },
-  { id: 'rehab', name: 'Rehab Tracker', minTier: 'serious', pills: ['Budget', 'Receipts', 'Export'] },
-  { id: 'pwt', name: 'Property Walkthrough Tool', minTier: 'serious', pills: ['Scope', 'Rooms', 'Photos'] },
-  { id: 'dealcheck', name: 'Deal Check', minTier: 'starter', pills: ['Deal', 'Analysis'] },
-  { id: 'commercial', name: 'Commercial Calculator', minTier: 'serious', pills: ['Commercial', 'Cap Rate'] }
+  { id: 'offer', name: 'Property Offer Calculator', minTier: 'starter', pills: ['Offer', 'MAO', 'Comps'], path: 'offer.html' },
+  { id: 'brrrr', name: 'BRRRR Analyzer', minTier: 'starter', pills: ['BRRRR', 'Refi', 'ROI'], path: 'brrrr.html' },
+  { id: 'dealcheck', name: 'DealCheck Analyzer', minTier: 'serious', pills: ['Deal', 'Analysis'], path: 'dealcheck.html' },
+  { id: 'rehab', name: 'Rehab Tracker', minTier: 'serious', pills: ['Budget', 'Receipts', 'Export'], path: 'rehabtracker.html' },
+  { id: 'pwt', name: 'Property Walkthrough Tool', minTier: 'serious', pills: ['Scope', 'Rooms', 'Photos'], path: 'pwt.html' },
+  { id: 'wholesale', name: 'Wholesale Analyzer', minTier: 'serious', pills: ['Wholesale'], path: 'wholesale.html' },
+  { id: 'commercial', name: 'Commercial Analyzer', minTier: 'elite', pills: ['Commercial', 'Cap Rate'], path: 'commercial.html' }
 ];
 
 /** Member offerings: Academy access (not a "tool" card but member-facing). */
@@ -66,4 +74,10 @@ export function getInternalTools() {
 /** Get internal tool by product_key */
 export function getInternalToolByProductKey(productKey) {
   return INTERNAL_TOOLS.find(t => t.productKey === productKey) || null;
+}
+
+/** Get tool path by id (for opening actual calculator file). */
+export function getToolPath(toolId) {
+  const t = MEMBER_TOOLS.find(tool => tool.id === toolId);
+  return t?.path || null;
 }

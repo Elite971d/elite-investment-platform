@@ -104,14 +104,16 @@ export const TIER_HIERARCHY = {
  */
 // Only MEMBER tools (tier matrix). Internal tools (e.g. Investor Buy Box) are in js/tools-config.js
 // and must NEVER be added here — they are not gated by tier and never appear in dashboard/pricing.
+// guest: none | starter: offer, brrrr | serious: + dealcheck, rehab, pwt, wholesale | elite: + commercial | admin: all
 export const TOOL_ACCESS = {
   'offer': 'starter',
   'brrrr': 'starter',
+  'dealcheck': 'serious',
   'rehab': 'serious',
   'rehabtracker': 'serious',
   'pwt': 'serious',
-  'dealcheck': 'starter',
-  'commercial': 'serious'
+  'wholesale': 'serious',
+  'commercial': 'elite'
 };
 
 /**

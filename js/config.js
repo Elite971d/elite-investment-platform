@@ -44,13 +44,15 @@ const CONFIG = {
   },
   
   // Tool definitions with tier requirements (tier matrix only; no internal tools)
+  // starter: offer, brrrr | serious: + dealcheck, rehab, pwt, wholesale | elite: + commercial
   tools: [
     { id: 'offer', name: 'Property Offer Calculator', href: 'offer.html', minTier: 'starter', pills: ['Offer', 'MAO', 'Comps'] },
     { id: 'brrrr', name: 'BRRRR Analyzer', href: 'brrrr.html', minTier: 'starter', pills: ['BRRRR', 'Refi', 'ROI'] },
+    { id: 'dealcheck', name: 'DealCheck Analyzer', href: 'dealcheck.html', minTier: 'serious', pills: ['Deal', 'Analysis'] },
     { id: 'rehab', name: 'Rehab Tracker', href: 'rehabtracker.html', minTier: 'serious', pills: ['Budget', 'Receipts', 'Export'] },
     { id: 'pwt', name: 'Property Walkthrough Tool', href: 'pwt.html', minTier: 'serious', pills: ['Scope', 'Rooms', 'Photos'] },
-    { id: 'dealcheck', name: 'Deal Check', href: 'dealcheck.html', minTier: 'starter', pills: ['Deal', 'Analysis'] },
-    { id: 'commercial', name: 'Commercial Calculator', href: 'commercial.html', minTier: 'serious', pills: ['Commercial', 'Cap Rate'] }
+    { id: 'wholesale', name: 'Wholesale Analyzer', href: 'wholesale.html', minTier: 'serious', pills: ['Wholesale'] },
+    { id: 'commercial', name: 'Commercial Analyzer', href: 'commercial.html', minTier: 'elite', pills: ['Commercial', 'Cap Rate'] }
   ]
 };
 

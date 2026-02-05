@@ -201,6 +201,13 @@ body{
   filter:grayscale(35%);
   opacity:.75;
 }
+.tool-link-disabled{
+  cursor:not-allowed;
+}
+.tool-actions .upgrade-cta{
+  font-size:.85rem;
+  padding:8px 12px;
+}
 
 .upgrade{
   margin-top:16px;
@@ -332,6 +339,7 @@ body{
 // Load Supabase from CDN
 const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
 const { getMemberTools } = await import('./js/tools-config.js');
+const { getTierPaymentLink } = await import('./js/tier-config.js');
 
 // Config: auth/config.js (window) or build env, then placeholder
 const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
@@ -456,7 +464,9 @@ function renderTools(userTier, entitlements, expired) {
   
   TOOLS.forEach(function (tool) {
     const access = canAccess(effectiveTier, tool.minTier);
-    const toolHref = '/protected.html?tool=' + encodeURIComponent(tool.id);
+    const toolPath = tool.path || (tool.id + '.html');
+    const toolHref = access ? (toolPath.startsWith('/') ? toolPath : '/' + toolPath) : '#';
+    const upgradeUrl = getTierPaymentLink(tool.minTier) || '/index.html#pricing';
     const card = document.createElement('div');
     card.className = 'card' + (access ? '' : ' locked');
     
@@ -465,13 +475,17 @@ function renderTools(userTier, entitlements, expired) {
       ? '<span class="pill">Unlocked</span>'
       : '<span class="pill">Requires: ' + prettyTier(tool.minTier) + '</span>';
     
-    const link = access
-      ? '<a class="tool-link" href="' + toolHref + '" target="_blank" data-tool-id="' + tool.id + '">Open Tool →</a>'
-      : '<span class="tool-link" style="pointer-events:none;opacity:.75">Locked 🔒</span>';
+    let actionsHtml;
+    if (access) {
+      actionsHtml = '<a class="tool-link" href="' + toolHref + '" target="_blank" data-tool-id="' + tool.id + '">Open Tool →</a>';
+    } else {
+      actionsHtml = '<span class="tool-link tool-link-disabled" aria-disabled="true">Locked 🔒</span>' +
+        '<a class="btn upgrade-cta" href="' + upgradeUrl + '" target="_blank" rel="noopener">Upgrade to ' + prettyTier(tool.minTier) + '</a>';
+    }
     card.innerHTML = '<h3>' + tool.name + '</h3>' +
-      '<p>' + (access ? 'Open tool in protected wrapper.' : 'Upgrade your membership to unlock this tool.') + '</p>' +
+      '<p>' + (access ? 'Open this calculator in a new tab.' : 'Upgrade your membership to unlock this tool.') + '</p>' +
       '<div class="tool-meta">' + lockLine + pills + '</div>' +
-      '<div class="tool-actions">' + link + '</div>';
+      '<div class="tool-actions">' + actionsHtml + '</div>';
     grid.appendChild(card);
   });
 }

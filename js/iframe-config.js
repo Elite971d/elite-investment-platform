@@ -28,8 +28,9 @@ export const HARDENED_CALCULATORS = [
   'rehab',           // Rehab Tracker (alias)
   'rehabtracker',    // Rehab Tracker
   'pwt',             // Property Walkthrough Tool
-  'dealcheck',       // Deal Check
-  'commercial'       // Commercial Calculator
+  'dealcheck',       // DealCheck Analyzer
+  'wholesale',       // Wholesale Analyzer
+  'commercial'       // Commercial Analyzer
 ];
 
 /** Check if an origin is in the approved list */

@@ -32,15 +32,16 @@ function isAllowedEmbedOrigin(origin) {
   return ALLOWED_EMBED_ORIGINS.includes(origin);
 }
 
-/** Tool ID → minimum required tier (must match tier-config.js) */
+/** Tool ID → minimum required tier (must match tier-config.js). guest: none | starter: offer, brrrr | serious: + dealcheck, rehab, pwt, wholesale | elite: + commercial */
 const TOOL_ACCESS = {
   offer: 'starter',
   brrrr: 'starter',
+  dealcheck: 'serious',
   rehab: 'serious',
   rehabtracker: 'serious',
   pwt: 'serious',
-  dealcheck: 'starter',
-  commercial: 'serious'
+  wholesale: 'serious',
+  commercial: 'elite'
 };
 
 const TIER_RANK = {
