@@ -3,6 +3,12 @@
 -- ============================================
 -- Run this AFTER the main schema.sql
 -- Adds admin role support and RLS policies
+--
+-- IMPORTANT: tier vs role
+--   - tier = membership level (guest, starter, serious, elite, academy_*).
+--     Use the app or "User & Tier" in admin to change tier.
+--   - role  = admin access (user | admin). To make someone an admin,
+--     update role to 'admin'; do NOT set tier to 'admin' (tier has no 'admin' value).
 
 -- Add role column to profiles
 ALTER TABLE profiles 
