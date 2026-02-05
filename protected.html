@@ -263,19 +263,18 @@ function prettyTier(tier) {
       return;
     }
     
-    // Get user profile
-    const { data: profile, error: profileError } = await supabase
+    // Resolve role and tier ONLY from Supabase auth metadata
+    const user = session.user;
+    const role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
+    const tier = user?.user_metadata?.tier ?? user?.app_metadata?.tier ?? 'guest';
+    const userTier = role === 'admin' ? 'admin' : tier;
+
+    // Optional: load profile for display/entitlements (not used for tier/role)
+    const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', session.user.id)
       .single();
-    
-    if (profileError || !profile) {
-      throw new Error('Unable to load profile');
-    }
-
-    // Role precedence: admin bypasses tier gating (logic override, no DB mutation)
-    const userTier = profile.role === 'admin' ? 'admin' : (profile.tier || 'guest');
 
     // Check tier access — redirect to pricing for unauthorized tier
     if (!canAccess(userTier, requiredTier)) {
@@ -292,7 +291,7 @@ function prettyTier(tier) {
 
     // Optional: check active entitlements not expired (server is source of truth; this is UX)
     // Admins bypass entitlement check (full access)
-    const isAdmin = profile.role === 'admin';
+    const isAdmin = role === 'admin';
     const { data: entitlements } = await supabase
       .from('entitlements')
       .select('id, expires_at, status')

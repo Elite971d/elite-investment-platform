@@ -156,24 +156,12 @@ export async function runCalculatorGate(toolId, options = {}) {
     return { allowed: false };
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', session.user.id)
-    .single();
+  // Resolve role and tier ONLY from Supabase auth metadata
+  const user = session.user;
+  const role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
+  const tierFromMeta = user?.user_metadata?.tier ?? user?.app_metadata?.tier ?? 'guest';
+  const tier = role === 'admin' ? 'admin' : tierFromMeta;
 
-  if (profileError || !profile) {
-    if (inIframe) {
-      document.body.innerHTML = '<div style="font-family:sans-serif;padding:2rem;text-align:center;color:#333;">' +
-        '<p>Unable to load membership. Please log in again.</p><a href="' + loginUrl() + '">Log in</a></div>';
-    } else {
-      window.location.replace(loginUrl(window.location.href));
-    }
-    return { allowed: false };
-  }
-
-  // Role precedence: admin bypasses tier gating (logic override, no DB mutation)
-  const tier = profile.role === 'admin' ? 'admin' : (profile.tier || 'guest');
   if (!canAccessTool(tier, toolId)) {
     window.location.replace(pricingUrl());
     return { allowed: false };

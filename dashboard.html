@@ -398,9 +398,9 @@ function hasValidEntitlement(entitlements) {
 function renderTools(userTier, entitlements, expired) {
   const grid = document.getElementById('toolsGrid');
   grid.innerHTML = '';
-  const effectiveTier = expired ? 'guest' : userTier;
-  // Admin: show "Full" for access, never "Guest"
-  const displayTier = effectiveTier === 'admin' ? 'Full' : prettyTier(effectiveTier);
+  // Admin never resolves to Guest; bypass expired downgrade for admin
+  const effectiveTier = userTier === 'admin' ? 'admin' : (expired ? 'guest' : userTier);
+  const displayTier = effectiveTier === 'admin' ? 'Admin / Full Access' : prettyTier(effectiveTier);
 
   document.getElementById('tierLabel').textContent = displayTier;
   document.getElementById('accountTier').textContent = displayTier;
@@ -410,7 +410,7 @@ function renderTools(userTier, entitlements, expired) {
   document.getElementById('eliteLink').href = SQUARE_LINKS.elite;
   
   const upgradeBox = document.getElementById('upgradeBox');
-  upgradeBox.style.display = (effectiveTier !== 'elite' && effectiveTier !== 'academy_premium') ? 'flex' : 'none';
+  upgradeBox.style.display = (effectiveTier === 'admin' || effectiveTier === 'elite' || effectiveTier === 'academy_premium') ? 'none' : 'flex';
   
   if (expired) {
     var expBanner = document.getElementById('expiredBanner');
@@ -458,6 +458,20 @@ function initTabs() {
   });
 }
 
+// Resolve role and tier ONLY from Supabase auth metadata (no hardcoded defaults except fallbacks)
+function getRoleAndTier(user) {
+  const role =
+    user?.user_metadata?.role ??
+    user?.app_metadata?.role ??
+    'user';
+  const tier =
+    user?.user_metadata?.tier ??
+    user?.app_metadata?.tier ??
+    'guest';
+  const effectiveTier = role === 'admin' ? 'admin' : tier;
+  return { role, tier, effectiveTier };
+}
+
 // Main initialization
 (async () => {
   const session = await checkAuth();
@@ -467,14 +481,14 @@ function initTabs() {
   document.getElementById('userEmail').textContent = user.email;
   document.getElementById('accountEmail').textContent = user.email;
   
-  const { data: profile, error } = await getUserProfile(user.id);
-  // Role precedence: admin bypasses tier gating (logic override, no DB mutation)
-  const effectiveTier = profile?.role === 'admin' ? 'admin' : (profile?.tier || 'guest');
-  document.getElementById('accountRole').textContent = profile?.role || 'user';
+  const { role, tier, effectiveTier } = getRoleAndTier(user);
+  document.getElementById('accountRole').textContent = role === 'admin' ? 'Admin' : role;
 
-  if (profile?.role === 'admin') {
+  if (role === 'admin') {
     document.getElementById('adminLink').style.display = 'inline-flex';
   }
+
+  const { data: profile } = await getUserProfile(user.id);
   
   if (profile?.created_at) {
     const date = new Date(profile.created_at);
