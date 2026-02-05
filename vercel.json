@@ -1,36 +1,14 @@
 {
   "headers": [
     {
-      "source": "/protected.html",
+      "source": "/(.*)",
       "headers": [
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         {
           "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173"
-        }
-      ]
-    },
-    {
-      "source": "/dealcheck/protected.html",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173"
-        }
-      ]
-    },
-    { "source": "/offer.html", "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173" }] },
-    { "source": "/brrrr.html", "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173" }] },
-    { "source": "/rehabtracker.html", "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173" }] },
-    { "source": "/pwt.html", "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173" }] },
-    { "source": "/dealcheck.html", "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173" }] },
-    { "source": "/commercial.html", "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173" }] },
-    { "source": "/wholesale.html", "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173" }] },
-    {
-      "source": "/tools/(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173"
+          "value": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://*.supabase.in; frame-ancestors 'self' https://invest.elitesolutionsnetwork.com https://dealcheck.elitesolutionsnetwork.com http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 http://127.0.0.1:5173"
         }
       ]
     }

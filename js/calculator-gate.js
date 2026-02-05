@@ -119,14 +119,11 @@ export async function runCalculatorGate(toolId, options = {}) {
       try {
         const refOrigin = new URL(ref).origin;
         if (!isAllowedEmbedOrigin(refOrigin)) {
-          document.body.innerHTML = '<div style="font-family:sans-serif;padding:2rem;text-align:center;color:#333;max-width:400px;margin:2rem auto;">' +
-            '<p><strong>Embedding not allowed</strong></p><p>This calculator can only be used from Elite Investor Academy.</p>' +
-            '<p><a href="' + INVEST_ORIGIN + '/login.html" style="color:#FF7300;">Go to Elite Investor Academy</a></p></div>';
+          document.body.innerHTML = '<p style="font-family:sans-serif;padding:2rem;text-align:center;">Unauthorized embed</p>';
           return { allowed: false };
         }
       } catch (e) {
-        document.body.innerHTML = '<div style="font-family:sans-serif;padding:2rem;text-align:center;color:#333;">' +
-          '<p>Invalid request. <a href="' + INVEST_ORIGIN + '">Go to Elite Investor Academy</a></p></div>';
+        document.body.innerHTML = '<p style="font-family:sans-serif;padding:2rem;text-align:center;">Unauthorized embed</p>';
         return { allowed: false };
       }
     }
