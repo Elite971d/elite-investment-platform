@@ -336,11 +336,14 @@ body{
 </main>
 
 <script src="auth/config.js"></script>
+<script type="module" src="/js/analytics-error-boundary.js"></script>
+<script type="module" src="/js/analytics-pageview.js" data-page="dashboard"></script>
 <script type="module">
 // Load Supabase from CDN
 const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
 const { getMemberTools } = await import('./js/tools-config.js');
 const { getTierPaymentLink } = await import('./js/tier-config.js');
+const { track } = await import('./js/analytics.js');
 
 // Config: auth/config.js (window) or build env, then placeholder
 const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
@@ -544,6 +547,12 @@ function initTabs() {
   }
 
   const { effectiveTier, resolvedFrom } = await getEffectiveTier(user);
+  try {
+    track('auth_state', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard', metadata: { resolvedFrom } });
+    if (role === 'admin' && effectiveTier !== 'admin') {
+      track('tier_mismatch', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard', metadata: { expected: 'admin', resolvedFrom } });
+    }
+  } catch (_) {}
   if (role === 'admin') {
     document.getElementById('resolvedFromDebug').style.display = 'block';
     document.getElementById('resolvedFromValue').textContent = resolvedFrom;
@@ -603,11 +612,23 @@ function initTabs() {
   
   // Logout handler
   document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try { track('logout', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard'); } catch (_) {}
     await supabase.auth.signOut();
     window.location.href = '/login.html';
   });
   
   initTabs();
+
+  // Auth session events (token refresh / sign out) — passive logging only
+  const _uid = user.id;
+  const _tier = effectiveTier;
+  supabase.auth.onAuthStateChange(function (event) {
+    try {
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        track('auth_session_event', { user_id: _uid, role, tier: _tier, page: 'dashboard', metadata: { event } });
+      }
+    } catch (_) {}
+  });
 
   // Delegate: on tool link click, log usage then allow navigation
   document.getElementById('toolsGrid').addEventListener('click', function (e) {

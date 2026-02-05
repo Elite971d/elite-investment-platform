@@ -237,9 +237,12 @@ input:focus {
 </div>
 
 <script src="auth/config.js"></script>
+<script type="module" src="/js/analytics-error-boundary.js"></script>
+<script type="module" src="/js/analytics-pageview.js" data-page="login"></script>
 <script type="module">
 // Load Supabase from CDN
 const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+const { track } = await import('./js/analytics.js');
 
 // Config: auth/config.js (window) or build env, then placeholder
 const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
@@ -251,13 +254,21 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 supabase.auth.getSession().then(({ data: { session }, error }) => {
   if (error) {
     console.warn('[login] getSession failed:', error.message || error);
+    try { track('auth_state', { role: 'guest', tier: 'guest', page: 'login', metadata: { error: 'getSession_failed' } }); } catch (_) {}
     return;
   }
   if (session) {
+    try {
+      const role = session.user?.user_metadata?.role ?? session.user?.app_metadata?.role ?? 'user';
+      const tier = session.user?.user_metadata?.tier ?? session.user?.app_metadata?.tier ?? 'guest';
+      track('auth_state', { user_id: session.user?.id, role, tier, page: 'login', metadata: { state: 'already_signed_in' } });
+    } catch (_) {}
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get('redirect');
     const path = redirect && redirect.startsWith('/') ? redirect : '/dashboard.html';
     window.location.replace(path);
+  } else {
+    try { track('auth_state', { role: 'guest', tier: 'guest', page: 'login' }); } catch (_) {}
   }
 }).catch((err) => {
   console.warn('[login] getSession error:', err?.message || err);
@@ -288,6 +299,12 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     });
     
     if (error) throw error;
+    
+    try {
+      const role = data.user?.user_metadata?.role ?? data.user?.app_metadata?.role ?? 'user';
+      const tier = data.user?.user_metadata?.tier ?? data.user?.app_metadata?.tier ?? 'guest';
+      track('login_success', { user_id: data.user?.id, role, tier, page: 'login' });
+    } catch (_) {}
     
     // Success - redirect to dashboard or allowed redirect param
     successMsg.textContent = 'Login successful! Redirecting...';

@@ -100,12 +100,22 @@ export async function runCalculatorGate(toolId, options = {}) {
   const supabaseUrl = options.supabaseUrl || dataset.supabaseUrl || (typeof window !== 'undefined' && window.ESN_SUPABASE_URL) || '';
   const supabaseAnonKey = options.supabaseAnonKey || dataset.supabaseAnonKey || (typeof window !== 'undefined' && window.ESN_SUPABASE_ANON_KEY) || '';
 
+  function trackCalculatorAccess(allowed, meta = {}) {
+    try {
+      import('./analytics.js').then(function (m) {
+        m.track('calculator_access', { page: toolId, metadata: { allowed, ...meta } });
+      }).catch(function () {});
+    } catch (_) {}
+  }
+
   if (!toolId) {
+    trackCalculatorAccess(false, { reason: 'no_tool_id' });
     if (window.top === window.self) window.location.replace(pricingUrl());
     return { allowed: false };
   }
 
   if (!TOOL_ACCESS[toolId]) {
+    trackCalculatorAccess(false, { reason: 'unknown_tool' });
     if (window.top === window.self) window.location.replace(pricingUrl());
     return { allowed: false };
   }
@@ -119,10 +129,12 @@ export async function runCalculatorGate(toolId, options = {}) {
       try {
         const refOrigin = new URL(ref).origin;
         if (!isAllowedEmbedOrigin(refOrigin)) {
+          trackCalculatorAccess(false, { reason: 'unauthorized_embed' });
           document.body.innerHTML = '<p style="font-family:sans-serif;padding:2rem;text-align:center;">Unauthorized embed</p>';
           return { allowed: false };
         }
       } catch (e) {
+        trackCalculatorAccess(false, { reason: 'embed_error' });
         document.body.innerHTML = '<p style="font-family:sans-serif;padding:2rem;text-align:center;">Unauthorized embed</p>';
         return { allowed: false };
       }
@@ -130,6 +142,7 @@ export async function runCalculatorGate(toolId, options = {}) {
   }
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    trackCalculatorAccess(false, { reason: 'gate_not_configured' });
     if (inIframe) {
       document.body.innerHTML = '<div style="font-family:sans-serif;padding:2rem;text-align:center;color:#333;">' +
         '<p>Calculator gate is not configured.</p><a href="' + loginUrl() + '">Log in</a></div>';
@@ -153,6 +166,7 @@ export async function runCalculatorGate(toolId, options = {}) {
     console.warn('[calculator-gate] getSession failed:', e?.message || e);
   }
   if (sessionError || !session) {
+    trackCalculatorAccess(false, { reason: 'login_required' });
     if (inIframe) {
       document.body.innerHTML = '<div style="font-family:sans-serif;padding:2rem;text-align:center;color:#333;max-width:400px;margin:2rem auto;">' +
         '<p><strong>Login required</strong></p><p>You must be logged in to use this calculator.</p>' +
@@ -170,11 +184,18 @@ export async function runCalculatorGate(toolId, options = {}) {
   const tier = (role === 'admin' ? 'admin' : tierFromMeta) || 'guest';
 
   if (!canAccessTool(tier, toolId)) {
+    try {
+      import('./analytics.js').then(function (m) {
+        m.track('tier_mismatch', { tier, role, page: toolId, metadata: { required_tier: TOOL_ACCESS[toolId] } });
+      }).catch(function () {});
+    } catch (_) {}
     console.warn('[calculator-gate] tier mismatch: user tier=' + (tier || 'guest') + ', tool=' + toolId + ' requires ' + (TOOL_ACCESS[toolId] || '?'));
+    trackCalculatorAccess(false, { reason: 'insufficient_tier', user_tier: tier, required_tier: TOOL_ACCESS[toolId] });
     window.location.replace(pricingUrl());
     return { allowed: false };
   }
 
+  trackCalculatorAccess(true, { tier });
   return { allowed: true, user: session.user, tier };
 }
 

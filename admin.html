@@ -493,6 +493,8 @@ body{
 </main>
 
 <script src="auth/config.js"></script>
+<script type="module" src="/js/analytics-error-boundary.js"></script>
+<script type="module" src="/js/analytics-pageview.js" data-page="admin"></script>
 <script type="module">
 // Load Supabase from CDN
 const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
