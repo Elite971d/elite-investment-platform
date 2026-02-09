@@ -340,40 +340,7 @@ target.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 });
 </script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  // ---- View Pricing button -> scroll to pricing section ----
-  const viewBtn = document.getElementById("viewPricingBtn");
-  const pricingEl = document.getElementById("pricing");
-  if (viewBtn && pricingEl) {
-    viewBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      pricingEl.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-
-  // ---- Pricing tabs: Tools vs Academy ----
-  const toolsBtn = document.getElementById("tabToolsBtn");
-  const academyBtn = document.getElementById("tabAcademyBtn");
-  const toolsTab = document.getElementById("tools");
-  const academyTab = document.getElementById("academy");
-
-  function setActiveTab(which) {
-    if (!toolsBtn || !academyBtn || !toolsTab || !academyTab) return;
-
-    // buttons
-    toolsBtn.classList.toggle("active", which === "tools");
-    academyBtn.classList.toggle("active", which === "academy");
-
-    // panels
-    toolsTab.classList.toggle("active", which === "tools");
-    academyTab.classList.toggle("active", which === "academy");
-  }
-
-  if (toolsBtn) toolsBtn.addEventListener("click", (e) => { e.preventDefault(); setActiveTab("tools"); });
-  if (academyBtn) academyBtn.addEventListener("click", (e) => { e.preventDefault(); setActiveTab("academy"); });
-});
-</script>
+<script src="js/index-clicks.js"></script>
 
 </body>
 </html>
