@@ -36,6 +36,9 @@ button{cursor:pointer}
   background:#FF7300;
   color:#fff;
   border-radius:6px;
+  position:relative;
+  z-index:2;
+  pointer-events:auto;
 }
 
 /* SECTIONS */
@@ -83,12 +86,18 @@ h2{text-align:center;font-size:2rem;margin-bottom:2rem}
   gap:12px;
   flex-wrap:wrap;
   margin-bottom:2rem;
+  position:relative;
+  z-index:2;
+  pointer-events:auto;
 }
 .pricing-tab-btn{
   padding:10px 18px;
   border-radius:8px;
   border:1px solid #ccc;
   background:#f5f5f5;
+  position:relative;
+  z-index:2;
+  pointer-events:auto;
 }
 .pricing-tab-btn.active{
   background:#FF7300;
@@ -145,7 +154,7 @@ footer{
     background="transparent" speed="1" loop autoplay style="width:140px"></lottie-player>
   <h1 data-aos="fade-down">Start Your Real Estate Journey</h1>
   <p data-aos="fade-up">Elite tools, calculators, and training — built for real investors</p>
-  <button onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">
+  <button type="button" id="viewPricingBtn">
     View Pricing
   </button>
 </section>
@@ -163,8 +172,8 @@ footer{
 <div class="pricing-tabs">
 
 <div class="pricing-tab-buttons">
-  <button class="pricing-tab-btn active" onclick="openPricingTab(this,'tools')">🧮 Calculator Membership</button>
-  <button class="pricing-tab-btn" onclick="openPricingTab(this,'academy')">🎓 Investor Academy</button>
+  <button type="button" class="pricing-tab-btn active" data-pricing-tab="tools">🧮 Calculator Membership</button>
+  <button type="button" class="pricing-tab-btn" data-pricing-tab="academy">🎓 Investor Academy</button>
 </div>
 
 <!-- CALCULATOR TIERS -->
@@ -263,6 +272,31 @@ footer{
 <script type="module" src="js/analytics-error-boundary.js"></script>
 <script type="module" src="js/analytics-pageview.js" data-page="index"></script>
 <script src="js/index-init.js"></script>
+<script>
+(function () {
+  function bindInteractions() {
+    var pricingEl = document.getElementById('pricing');
+    var viewPricingBtn = document.getElementById('viewPricingBtn');
+    if (viewPricingBtn && pricingEl) {
+      viewPricingBtn.addEventListener('click', function () {
+        pricingEl.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+    document.querySelectorAll('.pricing-tab-btn[data-pricing-tab]').forEach(function (btn) {
+      var tabId = btn.getAttribute('data-pricing-tab');
+      if (!tabId || typeof window.openPricingTab !== 'function') return;
+      btn.addEventListener('click', function () {
+        window.openPricingTab(btn, tabId);
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindInteractions);
+  } else {
+    bindInteractions();
+  }
+})();
+</script>
 
 </body>
 </html>
