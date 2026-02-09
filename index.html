@@ -148,6 +148,14 @@ footer{
   .hero h1{font-size:2rem}
   .hero p{font-size:1rem}
 }
+/* ensure clickable elements are not blocked */
+#viewPricingBtn,
+#tabToolsBtn,
+#tabAcademyBtn{
+position:relative;
+z-index:10;
+pointer-events:auto;
+}
 </style>
 </head>
 
@@ -159,7 +167,7 @@ footer{
     background="transparent" speed="1" loop autoplay style="width:140px"></lottie-player>
   <h1 data-aos="fade-down">Start Your Real Estate Journey</h1>
   <p data-aos="fade-up">Elite tools, calculators, and training — built for real investors</p>
-  <button data-scroll="pricing" type="button">
+  <button id="viewPricingBtn" data-scroll="pricing" type="button">
     View Pricing
   </button>
 </section>
@@ -177,8 +185,8 @@ footer{
 <div class="pricing-tabs">
 
 <div class="pricing-tab-buttons">
-  <button type="button" class="pricing-tab-btn active" data-pricing-tab="tools">🧮 Calculator Membership</button>
-  <button type="button" class="pricing-tab-btn" data-pricing-tab="academy">🎓 Investor Academy</button>
+  <button id="tabToolsBtn" type="button" class="pricing-tab-btn active" data-pricing-tab="tools">🧮 Calculator Membership</button>
+  <button id="tabAcademyBtn" type="button" class="pricing-tab-btn" data-pricing-tab="academy">🎓 Investor Academy</button>
 </div>
 
 <!-- CALCULATOR TIERS -->
@@ -330,6 +338,40 @@ btn.addEventListener("click", function (e) {
 e.preventDefault();
 target.scrollIntoView({ behavior: "smooth", block: "start" });
 });
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // ---- View Pricing button -> scroll to pricing section ----
+  const viewBtn = document.getElementById("viewPricingBtn");
+  const pricingEl = document.getElementById("pricing");
+  if (viewBtn && pricingEl) {
+    viewBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      pricingEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  // ---- Pricing tabs: Tools vs Academy ----
+  const toolsBtn = document.getElementById("tabToolsBtn");
+  const academyBtn = document.getElementById("tabAcademyBtn");
+  const toolsTab = document.getElementById("tools");
+  const academyTab = document.getElementById("academy");
+
+  function setActiveTab(which) {
+    if (!toolsBtn || !academyBtn || !toolsTab || !academyTab) return;
+
+    // buttons
+    toolsBtn.classList.toggle("active", which === "tools");
+    academyBtn.classList.toggle("active", which === "academy");
+
+    // panels
+    toolsTab.classList.toggle("active", which === "tools");
+    academyTab.classList.toggle("active", which === "academy");
+  }
+
+  if (toolsBtn) toolsBtn.addEventListener("click", (e) => { e.preventDefault(); setActiveTab("tools"); });
+  if (academyBtn) academyBtn.addEventListener("click", (e) => { e.preventDefault(); setActiveTab("academy"); });
 });
 </script>
 
