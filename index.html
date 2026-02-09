@@ -159,7 +159,7 @@ footer{
     background="transparent" speed="1" loop autoplay style="width:140px"></lottie-player>
   <h1 data-aos="fade-down">Start Your Real Estate Journey</h1>
   <p data-aos="fade-up">Elite tools, calculators, and training — built for real investors</p>
-  <button type="button" id="viewPricingBtn">
+  <button data-scroll="pricing" type="button">
     View Pricing
   </button>
 </section>
@@ -280,20 +280,10 @@ footer{
 <script>
 (function () {
   var pricingEl = document.getElementById('pricing');
-  function scrollToPricing() {
-    if (pricingEl) pricingEl.scrollIntoView({ behavior: 'smooth' });
-  }
   function handlePricingTab(btn, tabId) {
     if (typeof window.openPricingTab === 'function') window.openPricingTab(btn, tabId);
   }
   function bindInteractions() {
-    var viewPricingBtn = document.getElementById('viewPricingBtn');
-    if (viewPricingBtn && pricingEl) {
-      viewPricingBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        scrollToPricing();
-      });
-    }
     document.querySelectorAll('.pricing-tab-btn[data-pricing-tab]').forEach(function (btn) {
       var tabId = btn.getAttribute('data-pricing-tab');
       if (!tabId) return;
@@ -307,13 +297,6 @@ footer{
     var target = e.target;
     var el = target && target.nodeType === 1 ? target : (target && target.parentElement);
     if (!el) return;
-    var viewBtn = el.closest && el.closest('#viewPricingBtn');
-    if (viewBtn && pricingEl) {
-      e.preventDefault();
-      e.stopPropagation();
-      scrollToPricing();
-      return;
-    }
     var tabBtn = el.closest && el.closest('.pricing-tab-btn[data-pricing-tab]');
     if (tabBtn && typeof window.openPricingTab === 'function') {
       var id = tabBtn.getAttribute('data-pricing-tab');
@@ -335,6 +318,19 @@ footer{
     document.body.addEventListener('click', onDocClick, true);
   }
 })();
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+const btn = document.querySelector("[data-scroll='pricing']");
+const target = document.getElementById("pricing");
+
+if (!btn || !target) return;
+
+btn.addEventListener("click", function (e) {
+e.preventDefault();
+target.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+});
 </script>
 
 </body>

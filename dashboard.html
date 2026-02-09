@@ -233,6 +233,11 @@ body{
   padding:3rem;
   color:var(--muted);
 }
+.nav-premium {
+pointer-events: auto !important;
+position: relative;
+z-index: 9999;
+}
 </style>
 </head>
 
@@ -240,7 +245,7 @@ body{
 <header class="topbar">
   <div class="brand">
     <div class="logo"></div>
-    <div class="name">Elite Investor Academy<br><span style="font-family:Poppins;font-size:.8rem;color:rgba(255,255,255,.75)">Member Dashboard</span></div>
+    <div class="name"><a href="https://invest.elitesolutionsnetwork.com/index.html" class="nav-premium">Investor Academy</a><br><span style="font-family:Poppins;font-size:.8rem;color:rgba(255,255,255,.75)">Member Dashboard</span></div>
   </div>
   <div class="actions">
     <span id="userEmail" style="color:var(--muted);font-size:0.9rem;"></span>
