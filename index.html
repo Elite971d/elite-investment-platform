@@ -17,6 +17,7 @@ button{cursor:pointer}
 
 /* HERO */
 .hero{
+  position:relative;
   min-height:100vh;
   display:flex;
   flex-direction:column;
@@ -26,6 +27,9 @@ button{cursor:pointer}
   background:linear-gradient(135deg,#0A2342,#1F3F70);
   color:#fff;
   padding:2rem;
+}
+.hero lottie-player{
+  pointer-events:none;
 }
 .hero h1{font-size:2.8rem;margin-bottom:1rem}
 .hero p{font-size:1.2rem;margin-bottom:2rem}
@@ -37,7 +41,7 @@ button{cursor:pointer}
   color:#fff;
   border-radius:6px;
   position:relative;
-  z-index:2;
+  z-index:100;
   pointer-events:auto;
 }
 
@@ -80,6 +84,7 @@ h2{text-align:center;font-size:2rem;margin-bottom:2rem}
   max-width:1100px;
   margin:0 auto;
 }
+#pricing{position:relative}
 .pricing-tab-buttons{
   display:flex;
   justify-content:center;
@@ -87,7 +92,7 @@ h2{text-align:center;font-size:2rem;margin-bottom:2rem}
   flex-wrap:wrap;
   margin-bottom:2rem;
   position:relative;
-  z-index:2;
+  z-index:100;
   pointer-events:auto;
 }
 .pricing-tab-btn{
@@ -96,7 +101,7 @@ h2{text-align:center;font-size:2rem;margin-bottom:2rem}
   border:1px solid #ccc;
   background:#f5f5f5;
   position:relative;
-  z-index:2;
+  z-index:100;
   pointer-events:auto;
 }
 .pricing-tab-btn.active{
@@ -274,26 +279,60 @@ footer{
 <script src="js/index-init.js"></script>
 <script>
 (function () {
+  var pricingEl = document.getElementById('pricing');
+  function scrollToPricing() {
+    if (pricingEl) pricingEl.scrollIntoView({ behavior: 'smooth' });
+  }
+  function handlePricingTab(btn, tabId) {
+    if (typeof window.openPricingTab === 'function') window.openPricingTab(btn, tabId);
+  }
   function bindInteractions() {
-    var pricingEl = document.getElementById('pricing');
     var viewPricingBtn = document.getElementById('viewPricingBtn');
     if (viewPricingBtn && pricingEl) {
-      viewPricingBtn.addEventListener('click', function () {
-        pricingEl.scrollIntoView({ behavior: 'smooth' });
+      viewPricingBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        scrollToPricing();
       });
     }
     document.querySelectorAll('.pricing-tab-btn[data-pricing-tab]').forEach(function (btn) {
       var tabId = btn.getAttribute('data-pricing-tab');
-      if (!tabId || typeof window.openPricingTab !== 'function') return;
-      btn.addEventListener('click', function () {
-        window.openPricingTab(btn, tabId);
+      if (!tabId) return;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        handlePricingTab(btn, tabId);
       });
     });
   }
+  function onDocClick(e) {
+    var target = e.target;
+    var el = target && target.nodeType === 1 ? target : (target && target.parentElement);
+    if (!el) return;
+    var viewBtn = el.closest && el.closest('#viewPricingBtn');
+    if (viewBtn && pricingEl) {
+      e.preventDefault();
+      e.stopPropagation();
+      scrollToPricing();
+      return;
+    }
+    var tabBtn = el.closest && el.closest('.pricing-tab-btn[data-pricing-tab]');
+    if (tabBtn && typeof window.openPricingTab === 'function') {
+      var id = tabBtn.getAttribute('data-pricing-tab');
+      if (id) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlePricingTab(tabBtn, id);
+      }
+    }
+  }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindInteractions);
+    document.addEventListener('DOMContentLoaded', function () {
+      pricingEl = document.getElementById('pricing');
+      bindInteractions();
+      document.body.addEventListener('click', onDocClick, true);
+    });
   } else {
     bindInteractions();
+    document.body.addEventListener('click', onDocClick, true);
   }
 })();
 </script>
