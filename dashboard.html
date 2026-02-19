@@ -516,8 +516,17 @@ function initTabs() {
     document.getElementById('adminLink').style.display = 'inline-flex';
   }
 
-  revalidateEffectiveTier(user.id);
-  const { effectiveTier, resolvedFrom } = await getEffectiveTierCached(user);
+  // Admin: bypass tier resolution — show "Admin / Full Access" and all tools immediately
+  let effectiveTier, resolvedFrom;
+  if (role === 'admin') {
+    effectiveTier = 'admin';
+    resolvedFrom = 'admin';
+  } else {
+    revalidateEffectiveTier(user.id);
+    const result = await getEffectiveTierCached(user);
+    effectiveTier = result.effectiveTier;
+    resolvedFrom = result.resolvedFrom;
+  }
   try {
     track('auth_state', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard', metadata: { resolvedFrom } });
     if (role === 'admin' && effectiveTier !== 'admin') {
