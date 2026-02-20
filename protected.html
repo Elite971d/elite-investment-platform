@@ -179,14 +179,14 @@ const supabase = await getSupabase();
 // Tool id -> path and required tier (tier matrix only; no internal tools).
 // guest: none | starter: offer, brrrr | serious: + dealcheck, rehab, pwt, wholesale | elite: + commercial | admin: all
 const TOOL_MAP = {
-  offer: { path: 'offer.html', tier: 'starter' },
-  brrrr: { path: 'brrrr.html', tier: 'starter' },
-  dealcheck: { path: 'dealcheck.html', tier: 'serious' },
-  rehab: { path: 'rehabtracker.html', tier: 'serious' },
-  rehabtracker: { path: 'rehabtracker.html', tier: 'serious' },
-  pwt: { path: 'pwt.html', tier: 'serious' },
-  wholesale: { path: 'wholesale.html', tier: 'serious' },
-  commercial: { path: 'commercial.html', tier: 'elite' }
+  offer: { path: '/tools/offer.html', tier: 'starter' },
+  brrrr: { path: '/tools/brrrr.html', tier: 'starter' },
+  dealcheck: { path: '/tools/dealcheck.html', tier: 'serious' },
+  rehab: { path: '/tools/rehabtracker.html', tier: 'serious' },
+  rehabtracker: { path: '/tools/rehabtracker.html', tier: 'serious' },
+  pwt: { path: '/tools/pwt.html', tier: 'serious' },
+  wholesale: { path: '/tools/wholesale.html', tier: 'serious' },
+  commercial: { path: '/tools/commercial.html', tier: 'elite' }
 };
 
 const TIER_RANK = {

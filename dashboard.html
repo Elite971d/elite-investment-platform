@@ -349,7 +349,7 @@ z-index: 9999;
 <script type="module">
 // Single shared Supabase client (invest + dealcheck + Vercel + static)
 const { getSupabase } = await import('./js/supabase-auth-cookies.js');
-const { getMemberTools, DEALCHECK_TOOLS_BASE } = await import('./js/tools-config.js');
+const { getMemberTools, getToolPath } = await import('./js/tools-config.js');
 const { getTierPaymentLink, getToolAddonPaymentLink, TOOL_ADDONS } = await import('./js/tier-config.js');
 const { getUserEntitlements } = await import('./js/entitlements.js');
 const { track } = await import('./js/analytics.js');
@@ -483,7 +483,7 @@ function renderTools(userTier, entitlements, expired, userEntitlements) {
     const access = permissions[tool.id] ?? canAccess(safeTier, tool.minTier);
     const source = toolAccessSource[tool.id];
     const toolPath = tool.path || (tool.id + '.html');
-    const toolHref = access ? (DEALCHECK_TOOLS_BASE + '/protected.html?tool=' + tool.id) : '#';
+    const toolHref = access ? ('/tools/' + toolPath) : '#';
     const tierUpgradeUrl = getTierPaymentLink(tool.minTier) || '/index.html#pricing';
     const addonUrl = getToolAddonPaymentLink(tool.id);
     const addon = TOOL_ADDONS[tool.id];
