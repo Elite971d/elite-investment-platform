@@ -52,20 +52,28 @@ function tierIncludesTool(tier, toolKey) {
 
 /**
  * Resolve user tier from entitlements, profile, or default.
- * NEVER throws. Handles undefined/null safely. Does not assume entitlements exist.
- * Order: 1) active tier entitlement, 2) legacy profile.tier, 3) default 'guest'
+ * NEVER throws. Fully null-safe. Order: 1) active tier entitlement, 2) profile.tier, 3) 'guest'
  *
- * @param {object} user - Auth user (optional, for future use)
- * @param {object} profile - Profile with tier/role (profiles or member_profiles)
- * @param {Array} entitlements - Entitlements rows (type, product_key, status)
+ * Supports: resolveUserTier(profile, entitlements) or resolveUserTier(user, profile, entitlements)
+ *
+ * @param {object} profileOrUser - Profile with tier/role, or (legacy) user when 3 args
+ * @param {object|Array} profileOrEntitlements - Profile or entitlements (when 2 args)
+ * @param {Array} [entitlements] - Entitlements rows (when 3 args)
  * @returns {string} Resolved tier (never undefined)
  */
-export function resolveUserTier(user, profile, entitlements) {
+export function resolveUserTier(profileOrUser, profileOrEntitlements, entitlements) {
   try {
-    // 1) Check active tier entitlement FIRST
-    const arr = Array.isArray(entitlements) ? entitlements : [];
+    let profile, ents;
+    if (arguments.length === 2) {
+      profile = profileOrUser;
+      ents = profileOrEntitlements;
+    } else {
+      profile = profileOrEntitlements;
+      ents = entitlements;
+    }
+    const arr = Array.isArray(ents) ? ents : [];
     const activeTier = arr.find(function (e) {
-      return e && (e.type === 'tier' || (e.product_key && String(e.product_key).startsWith('tier_'))) && (e.status === 'active');
+      return e && (e.type === 'tier' || (e.product_key && String(e.product_key).startsWith('tier_'))) && e.status === 'active';
     });
     if (activeTier && activeTier.product_key) {
       const t = String(activeTier.product_key).replace(/^tier_/, '');

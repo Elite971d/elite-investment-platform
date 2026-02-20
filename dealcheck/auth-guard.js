@@ -103,8 +103,15 @@ export async function runAuthGuard(options = {}) {
     return { allowed: false };
   }
 
-  // Role precedence: admin bypasses tier gating (logic override, no DB mutation)
-  const tier = profile.role === 'admin' ? 'admin' : (profile.tier === undefined || profile.tier === null ? 'guest' : profile.tier);
+  // Admin: check member_profiles.role if not in profiles (admin must never be locked out)
+  let role = profile.role;
+  if (role !== 'admin') {
+    try {
+      const { data: mp } = await supabase.from('member_profiles').select('role').eq('id', session.user.id).maybeSingle();
+      if (mp?.role === 'admin') role = 'admin';
+    } catch (_) {}
+  }
+  const tier = role === 'admin' ? 'admin' : (profile.tier === undefined || profile.tier === null ? 'guest' : profile.tier);
 
   if (requestedTool) {
     const requiredTier = TOOL_ACCESS[requestedTool];
