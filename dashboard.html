@@ -347,9 +347,9 @@ z-index: 9999;
 <script type="module" src="/js/analytics-error-boundary.js"></script>
 <script type="module" src="/js/analytics-pageview.js" data-page="dashboard"></script>
 <script type="module">
-// Load Supabase from CDN
-const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-const { getMemberTools } = await import('./js/tools-config.js');
+// Supabase with cross-subdomain cookie storage (invest + dealcheck share session)
+const { createSupabaseAuthClient } = await import('./js/supabase-auth-cookies.js');
+const { getMemberTools, DEALCHECK_TOOLS_BASE } = await import('./js/tools-config.js');
 const { getTierPaymentLink, getToolAddonPaymentLink, TOOL_ADDONS } = await import('./js/tier-config.js');
 const { getUserEntitlements } = await import('./js/entitlements.js');
 const { track } = await import('./js/analytics.js');
@@ -359,7 +359,7 @@ const { getEffectiveTierCached, revalidateEffectiveTier } = await import('./js/e
 const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
 const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.__SUPABASE_ANON_KEY__) || import.meta.env?.VITE_SUPABASE_ANON_KEY || 'YOUR_PUBLIC_ANON_KEY';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = await createSupabaseAuthClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Tier configuration (admin = role override, full access)
 const TIER_RANK = { guest:0, starter:1, serious:2, elite:3, academy_starter:1, academy_pro:2, academy_premium:3, admin:999 };
@@ -463,7 +463,7 @@ function renderTools(userTier, entitlements, expired, userEntitlements) {
     const access = permissions[tool.id] ?? canAccess(safeTier, tool.minTier);
     const source = toolAccessSource[tool.id];
     const toolPath = tool.path || (tool.id + '.html');
-    const toolHref = access ? (toolPath.startsWith('/') ? toolPath : '/' + toolPath) : '#';
+    const toolHref = access ? (DEALCHECK_TOOLS_BASE + '/protected.html?tool=' + tool.id) : '#';
     const tierUpgradeUrl = getTierPaymentLink(tool.minTier) || '/index.html#pricing';
     const addonUrl = getToolAddonPaymentLink(tool.id);
     const addon = TOOL_ADDONS[tool.id];
@@ -538,16 +538,38 @@ function initTabs() {
     document.getElementById('adminLink').style.display = 'inline-flex';
   }
 
+  // Check member_profiles.role for admin (admin must never be locked out)
+  if (role !== 'admin') {
+    try {
+      const { data: mpRole } = await supabase.from('member_profiles').select('role').eq('id', user.id).maybeSingle();
+      if (mpRole?.role === 'admin') role = 'admin';
+    } catch (_) {}
+  }
+
+  // TEMP: Auth debug - remove after production validation
+  if (typeof console !== 'undefined' && console.log) {
+    console.log('[ESN-Auth] Auth User:', user?.id, user?.email);
+    console.log('[ESN-Auth] Role:', role);
+  }
+
   // Admin: bypass tier resolution — show "Admin / Full Access" and all tools immediately
+  // NEVER default admin to guest; admin bypasses all locks
   let effectiveTier, resolvedFrom;
   if (role === 'admin') {
     effectiveTier = 'admin';
     resolvedFrom = 'admin';
+    if (typeof console !== 'undefined' && console.log) {
+      console.log('[ESN-Auth] Resolved Tier: admin (role bypass)');
+    }
   } else {
     revalidateEffectiveTier(user.id);
     const result = await getEffectiveTierCached(user);
-    effectiveTier = result.effectiveTier;
+    effectiveTier = result.effectiveTier ?? 'guest';
     resolvedFrom = result.resolvedFrom;
+    resolvedFrom = result.resolvedFrom;
+    if (typeof console !== 'undefined' && console.log) {
+      console.log('[ESN-Auth] Resolved Tier:', effectiveTier, '(from', resolvedFrom + ')');
+    }
   }
   try {
     track('auth_state', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard', metadata: { resolvedFrom } });

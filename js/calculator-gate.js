@@ -73,15 +73,22 @@ function getOrigin() {
   return INVEST_ORIGIN;
 }
 
+/** Auth URLs: use invest origin when on dealcheck (login/pricing live on invest) */
+function getAuthBase() {
+  if (typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname.indexOf('dealcheck') !== -1)
+    return INVEST_ORIGIN;
+  return getOrigin();
+}
+
 function loginUrl(returnUrl) {
-  const base = getOrigin().replace(/\/$/, '');
+  const base = getAuthBase().replace(/\/$/, '');
   const path = LOGIN_PATH.startsWith('/') ? LOGIN_PATH : '/' + LOGIN_PATH;
   const url = base + path;
   return returnUrl ? url + '?redirect=' + encodeURIComponent(returnUrl) : url;
 }
 
 function pricingUrl() {
-  const base = getOrigin().replace(/\/$/, '');
+  const base = getAuthBase().replace(/\/$/, '');
   const path = PRICING_PATH.startsWith('/') ? PRICING_PATH : '/' + PRICING_PATH;
   return base + path;
 }
@@ -152,8 +159,8 @@ export async function runCalculatorGate(toolId, options = {}) {
     return { allowed: false };
   }
 
-  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const { createSupabaseAuthClient } = await import('./supabase-auth-cookies.js');
+  const supabase = await createSupabaseAuthClient(supabaseUrl, supabaseAnonKey);
 
   let session, sessionError;
   try {
@@ -192,6 +199,13 @@ export async function runCalculatorGate(toolId, options = {}) {
     else if (p?.tier && !tier) tier = p.tier;
   } catch (_) {}
   tier = tier || 'guest';
+
+  // TEMP: Auth debug - remove after production validation
+  if (typeof console !== 'undefined' && console.log) {
+    console.log('[ESN-Auth] Auth User:', user?.id, user?.email);
+    console.log('[ESN-Auth] Resolved Tier:', tier);
+    console.log('[ESN-Auth] Role:', role);
+  }
 
   let hasAccess = canAccessTool(tier, toolId);
   if (!hasAccess) {

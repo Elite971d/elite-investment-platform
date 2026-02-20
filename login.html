@@ -240,15 +240,15 @@ input:focus {
 <script type="module" src="/js/analytics-error-boundary.js"></script>
 <script type="module" src="/js/analytics-pageview.js" data-page="login"></script>
 <script type="module">
-// Load Supabase from CDN
-const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+// Supabase with cross-subdomain cookie storage (invest + dealcheck share session)
+const { createSupabaseAuthClient } = await import('./js/supabase-auth-cookies.js');
 const { track } = await import('./js/analytics.js');
 
 // Config: auth/config.js (window) or build env, then placeholder
 const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
 const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.__SUPABASE_ANON_KEY__) || import.meta.env?.VITE_SUPABASE_ANON_KEY || 'YOUR_PUBLIC_ANON_KEY';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = await createSupabaseAuthClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Check if already logged in (redirect to dashboard; on failure stay on login so user can retry)
 supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -306,16 +306,19 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       track('login_success', { user_id: data.user?.id, role, tier, page: 'login' });
     } catch (_) {}
     
-    // Success - redirect to dashboard or allowed redirect param
+    // Success - redirect to dashboard or allowed redirect param (invest or dealcheck)
     successMsg.textContent = 'Login successful! Redirecting...';
     successMsg.classList.add('show');
-    const allowed = ['/dashboard.html', '/', '/index.html', '/success.html', '/protected.html'];
+    const allowedPaths = ['/dashboard.html', '/', '/index.html', '/success.html', '/protected.html'];
+    const allowedOrigins = ['https://invest.elitesolutionsnetwork.com', 'https://dealcheck.elitesolutionsnetwork.com', 'http://localhost:3000', 'http://localhost:5173'];
     const redirectParam = new URLSearchParams(window.location.search).get('redirect');
     let target = '/dashboard.html';
-    if (redirectParam && redirectParam.startsWith('/')) {
+    if (redirectParam) {
       try {
-        const path = new URL(redirectParam, window.location.origin).pathname;
-        if (allowed.includes(path)) target = redirectParam;
+        const url = redirectParam.startsWith('http') ? new URL(redirectParam) : new URL(redirectParam, window.location.origin);
+        const path = url.pathname;
+        if (allowedOrigins.includes(url.origin) && allowedPaths.includes(path)) target = url.href;
+        else if (redirectParam.startsWith('/') && allowedPaths.includes(path)) target = redirectParam;
       } catch (_) {}
     }
     setTimeout(() => {

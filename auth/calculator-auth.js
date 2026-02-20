@@ -11,9 +11,12 @@
   var toolId = (script && script.getAttribute('data-tool')) || (typeof window !== 'undefined' && window.ESN_TOOL_ID) || '';
   if (!toolId) return;
 
+  var INVEST_ORIGIN = 'https://invest.elitesolutionsnetwork.com';
   var LOGIN_PATH = '/login.html';
   var DASHBOARD_PATH = '/dashboard.html';
   var BASE = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin.replace(/\/$/, '') : '';
+  var isDealcheck = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname.indexOf('dealcheck') !== -1 : false;
+  var LOGIN_BASE = isDealcheck ? INVEST_ORIGIN : BASE;
 
   var TOOL_ACCESS = {
     offer: 'starter', brrrr: 'starter', dealcheck: 'serious', rehab: 'serious', rehabtracker: 'serious',
@@ -49,21 +52,22 @@
       return;
     }
 
-    var createClient, supabase, sessionResult, session;
+    var supabase, sessionResult, session;
     try {
-      createClient = (await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')).createClient;
-      supabase = createClient(supabaseUrl, supabaseKey);
+      var authModule = await import('/js/supabase-auth-cookies.js');
+      supabase = await authModule.createSupabaseAuthClient(supabaseUrl, supabaseKey);
       sessionResult = await supabase.auth.getSession();
       session = sessionResult.data && sessionResult.data.session;
     } catch (e) {
       if (typeof console !== 'undefined') console.warn('[calculator-auth] init/getSession failed:', e && e.message ? e.message : e);
-      if (!inIframe) window.location.replace(BASE + LOGIN_PATH);
-      else showInFrameMessage('Unable to verify access. Please try again.', BASE + LOGIN_PATH);
+      if (!inIframe) window.location.replace(LOGIN_BASE + LOGIN_PATH);
+      else showInFrameMessage('Unable to verify access. Please try again.', LOGIN_BASE + LOGIN_PATH);
       return;
     }
     if (!session) {
       if (!inIframe) {
-        var loginUrl = BASE + LOGIN_PATH + '?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+        var redirectUrl = encodeURIComponent(window.location.href);
+        var loginUrl = LOGIN_BASE + LOGIN_PATH + '?redirect=' + redirectUrl;
         window.location.replace(loginUrl);
       } else {
         showInFrameMessage('You must be logged in to use this calculator.', BASE + LOGIN_PATH);
@@ -73,6 +77,18 @@
 
     var user = session.user;
     var role = (user && (user.user_metadata && user.user_metadata.role) || (user.app_metadata && user.app_metadata.role)) || 'user';
+    if (role !== 'admin') {
+      try {
+        var mpRes = await supabase.from('member_profiles').select('role').eq('id', user.id).maybeSingle();
+        if (mpRes.data && mpRes.data.role === 'admin') role = 'admin';
+      } catch (_) {}
+    }
+    if (role !== 'admin') {
+      try {
+        var profRes = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        if (profRes.data && profRes.data.role === 'admin') role = 'admin';
+      } catch (_) {}
+    }
     if (role === 'admin') {
       document.documentElement.classList.remove('esn-calc-auth-pending');
       return;
@@ -86,8 +102,8 @@
         document.documentElement.classList.remove('esn-calc-auth-pending');
         return;
       }
-      if (!inIframe) window.location.replace(BASE + DASHBOARD_PATH);
-      else showInFrameMessage('Your tier does not include this tool. Upgrade to unlock.', BASE + '/index.html');
+      if (!inIframe) window.location.replace(LOGIN_BASE + DASHBOARD_PATH);
+      else showInFrameMessage('Your tier does not include this tool. Upgrade to unlock.', LOGIN_BASE + '/index.html');
       return;
     }
 
@@ -102,8 +118,8 @@
     var userTier = (profileTier === undefined || profileTier === null || profileTier === '') ? 'guest' : profileTier;
 
     if (!canAccess(userTier, requiredTier)) {
-      if (!inIframe) window.location.replace(BASE + DASHBOARD_PATH);
-      else showInFrameMessage('Your tier does not include this tool. Upgrade to unlock.', BASE + '/index.html');
+      if (!inIframe) window.location.replace(LOGIN_BASE + DASHBOARD_PATH);
+      else showInFrameMessage('Your tier does not include this tool. Upgrade to unlock.', LOGIN_BASE + '/index.html');
       return;
     }
 
@@ -112,8 +128,9 @@
     if (typeof console !== 'undefined') console.warn('[calculator-auth] runGuard failed:', err && err.message ? err.message : err);
     document.documentElement.classList.remove('esn-calc-auth-pending');
     var inIframe = typeof window !== 'undefined' && window.self !== window.top;
-    var BASE = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin.replace(/\/$/, '') : '';
-    if (!inIframe) window.location.replace(BASE + '/login.html');
+    var isDc = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname.indexOf('dealcheck') !== -1 : false;
+    var loginBase = isDc ? 'https://invest.elitesolutionsnetwork.com' : ((typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin.replace(/\/$/, '') : '');
+    if (!inIframe) window.location.replace(loginBase + '/login.html');
     else {
       var wrap = document.createElement('div');
       wrap.style.cssText = 'font-family:sans-serif;padding:2rem;text-align:center;color:#333;max-width:400px;margin:2rem auto;';

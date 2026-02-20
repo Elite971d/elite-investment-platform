@@ -12,13 +12,13 @@ async function initSupabase() {
   if (supabaseClient) return supabaseClient;
 
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     const url = CONFIG.supabase.url;
     const anonKey = CONFIG.supabase.anonKey;
     if (!url || !anonKey || url === 'https://YOUR_PROJECT_ID.supabase.co' || anonKey === 'YOUR_PUBLIC_ANON_KEY') {
       console.warn('[supabase-client] Supabase not configured (missing url or anonKey). Set auth/config.js or window.__SUPABASE_*');
     }
-    supabaseClient = createClient(url, anonKey);
+    const { createSupabaseAuthClient } = await import('./supabase-auth-cookies.js');
+    supabaseClient = await createSupabaseAuthClient(url, anonKey);
     return supabaseClient;
   } catch (err) {
     console.warn('[supabase-client] init failed:', err?.message || err);

@@ -90,28 +90,33 @@ export async function runAuthGuard(options = {}) {
     return { allowed: false };
   }
 
-  const { data: profile, error: profileError } = await supabase
+  let profile = null;
+  const { data: profileData, error: profileError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', session.user.id)
-    .single();
+    .maybeSingle();
+  profile = profileData;
 
-  if (profileError || !profile) {
-    console.warn('[dealcheck/auth-guard] profile fetch failed:', profileError?.message || profileError);
-    const returnUrl = encodeURIComponent(window.location.href);
-    window.location.replace(LOGIN_URL + '?redirect=' + returnUrl);
-    return { allowed: false };
+  const { data: mp } = await supabase.from('member_profiles').select('role, tier').eq('id', session.user.id).maybeSingle();
+
+  let role = profile?.role ?? mp?.role ?? session.user?.user_metadata?.role ?? session.user?.app_metadata?.role ?? 'user';
+  if (mp?.role === 'admin' || profile?.role === 'admin') role = 'admin';
+
+  const rawTier = profile?.tier ?? mp?.tier ?? session.user?.user_metadata?.tier ?? session.user?.app_metadata?.tier;
+  const tier = role === 'admin' ? 'admin' : (rawTier === undefined || rawTier === null || rawTier === '' ? 'guest' : String(rawTier));
+
+  // TEMP: Auth debug - remove after production validation
+  if (typeof console !== 'undefined' && console.log) {
+    console.log('[ESN-Auth] Auth User:', session.user?.id, session.user?.email);
+    console.log('[ESN-Auth] Resolved Tier:', tier);
+    console.log('[ESN-Auth] Role:', role);
+    console.log('[ESN-Auth] Raw Tier:', rawTier);
   }
 
-  // Admin: check member_profiles.role if not in profiles (admin must never be locked out)
-  let role = profile.role;
-  if (role !== 'admin') {
-    try {
-      const { data: mp } = await supabase.from('member_profiles').select('role').eq('id', session.user.id).maybeSingle();
-      if (mp?.role === 'admin') role = 'admin';
-    } catch (_) {}
+  if (!profile && !mp) {
+    console.warn('[dealcheck/auth-guard] no profile in profiles or member_profiles');
   }
-  const tier = role === 'admin' ? 'admin' : (profile.tier === undefined || profile.tier === null ? 'guest' : profile.tier);
 
   if (requestedTool) {
     const requiredTier = TOOL_ACCESS[requestedTool];
@@ -123,8 +128,8 @@ export async function runAuthGuard(options = {}) {
     if (!hasAccess) {
       try {
         const { hasToolAccess } = await import('../js/entitlements.js');
-        const user = { id: session.user.id, tier };
-        hasAccess = await hasToolAccess(user, requestedTool);
+        const userObj = { id: session.user.id, tier };
+        hasAccess = await hasToolAccess(userObj, requestedTool, supabase);
       } catch (_) {}
     }
     if (!hasAccess) {
