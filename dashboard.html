@@ -387,6 +387,12 @@ function canAccess(userTier, minTier) {
   return userRank >= requiredRank;
 }
 
+function openTool(tool) {
+  const path = getToolPath(tool) || (tool + '.html');
+  const toolPath = '/tools/' + path;
+  window.location.href = toolPath;
+}
+
 function unlockAllTools() {
   document.querySelectorAll('.card.locked').forEach(function (card) {
     card.classList.remove('locked');
@@ -395,8 +401,9 @@ function unlockAllTools() {
     if (actions) {
       const toolId = card.dataset.toolId;
       if (toolId) {
-        const href = DEALCHECK_TOOLS_BASE + '/protected.html?tool=' + toolId;
-        actions.innerHTML = '<a class="tool-link" href="' + href + '" target="_blank" data-tool-id="' + toolId + '">Open Tool →</a>';
+        const path = getToolPath(toolId) || (toolId + '.html');
+        const toolPath = '/tools/' + path;
+        actions.innerHTML = '<a class="tool-link" href="' + toolPath + '" data-tool="' + toolId + '" data-tool-id="' + toolId + '">Open Tool →</a>';
       }
     }
   });
@@ -504,7 +511,7 @@ function renderTools(userTier, entitlements, expired, userEntitlements) {
     
     let actionsHtml;
     if (access) {
-      actionsHtml = '<a class="tool-link" href="' + toolHref + '" target="_blank" data-tool-id="' + tool.id + '">Open Tool →</a>';
+      actionsHtml = '<a class="tool-link" href="' + toolHref + '" data-tool="' + tool.id + '" data-tool-id="' + tool.id + '">Open Tool →</a>';
     } else {
       const subscribeUrl = addonUrl || tierUpgradeUrl;
       const priceText = addonPrice != null ? '$' + addonPrice + '/mo' : '';
@@ -705,14 +712,16 @@ function initTabs() {
     } catch (_) {}
   });
 
-  // Delegate: on tool link click, log usage then allow navigation
+  // Delegate: on tool link click, prevent default and use openTool for consistent navigation
   document.getElementById('toolsGrid').addEventListener('click', function (e) {
-    const a = e.target.closest('a[data-tool-id]');
-    if (a && a.dataset.toolId) {
+    const btn = e.target.closest('[data-tool], [data-tool-id]');
+    if (btn) {
       e.preventDefault();
-      logToolUsage(user.id, a.dataset.toolId).finally(function () {
-        window.open(a.href, '_blank');
-      });
+      const tool = btn.dataset.tool || btn.dataset.toolId;
+      if (tool) {
+        logToolUsage(user.id, tool).catch(function () {});
+        openTool(tool);
+      }
     }
   });
   } catch (err) {
