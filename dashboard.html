@@ -164,6 +164,9 @@ body{
   color:var(--gold);
   background:rgba(0,0,0,.25);
 }
+.pill-tier{ color:#7dd87d; border-color:rgba(125,216,125,.4); }
+.pill-addon{ color:#7dc8ff; border-color:rgba(125,200,255,.4); }
+.tool-price{ font-size:.9rem; color:var(--muted); padding:0 8px; }
 .tool-actions{
   margin-top:14px;
   display:flex; gap:10px; flex-wrap:wrap;
@@ -347,7 +350,8 @@ z-index: 9999;
 // Load Supabase from CDN
 const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
 const { getMemberTools } = await import('./js/tools-config.js');
-const { getTierPaymentLink } = await import('./js/tier-config.js');
+const { getTierPaymentLink, getToolAddonPaymentLink, TOOL_ADDONS } = await import('./js/tier-config.js');
+const { getUserEntitlements } = await import('./js/entitlements.js');
 const { track } = await import('./js/analytics.js');
 const { getEffectiveTierCached, revalidateEffectiveTier } = await import('./js/entitlements.js');
 
@@ -430,7 +434,7 @@ function hasValidEntitlement(entitlements) {
   });
 }
 
-function renderTools(userTier, entitlements, expired) {
+function renderTools(userTier, entitlements, expired, userEntitlements) {
   const grid = document.getElementById('toolsGrid');
   grid.innerHTML = '';
   // Admin never resolves to Guest; bypass expired downgrade for admin
@@ -452,28 +456,44 @@ function renderTools(userTier, entitlements, expired) {
     if (expBanner) expBanner.style.display = 'block';
   }
   
+  const permissions = userEntitlements?.permissions || {};
+  const toolAccessSource = userEntitlements?.toolAccessSource || {};
+  
   TOOLS.forEach(function (tool) {
-    const access = canAccess(safeTier, tool.minTier);
+    const access = permissions[tool.id] ?? canAccess(safeTier, tool.minTier);
+    const source = toolAccessSource[tool.id];
     const toolPath = tool.path || (tool.id + '.html');
     const toolHref = access ? (toolPath.startsWith('/') ? toolPath : '/' + toolPath) : '#';
-    const upgradeUrl = getTierPaymentLink(tool.minTier) || '/index.html#pricing';
+    const tierUpgradeUrl = getTierPaymentLink(tool.minTier) || '/index.html#pricing';
+    const addonUrl = getToolAddonPaymentLink(tool.id);
+    const addon = TOOL_ADDONS[tool.id];
+    const addonPrice = addon?.price;
     const card = document.createElement('div');
     card.className = 'card' + (access ? '' : ' locked');
     
     const pills = (tool.pills || []).map(function (p) { return '<span class="pill">' + p + '</span>'; }).join('');
-    const lockLine = access
-      ? '<span class="pill">Unlocked</span>'
-      : '<span class="pill">Requires: ' + prettyTier(tool.minTier) + '</span>';
+    let lockLine;
+    if (access) {
+      lockLine = source === 'addon'
+        ? '<span class="pill pill-addon">Active Subscription</span>'
+        : '<span class="pill pill-tier">Included in Your Plan</span>';
+    } else {
+      lockLine = '<span class="pill">Requires: ' + prettyTier(tool.minTier) + '</span>';
+    }
     
     let actionsHtml;
     if (access) {
       actionsHtml = '<a class="tool-link" href="' + toolHref + '" target="_blank" data-tool-id="' + tool.id + '">Open Tool →</a>';
     } else {
+      const subscribeUrl = addonUrl || tierUpgradeUrl;
+      const priceText = addonPrice != null ? '$' + addonPrice + '/mo' : '';
       actionsHtml = '<span class="tool-link tool-link-disabled" aria-disabled="true">Locked 🔒</span>' +
-        '<a class="btn upgrade-cta" href="' + upgradeUrl + '" target="_blank" rel="noopener">Upgrade to ' + prettyTier(tool.minTier) + '</a>';
+        (priceText ? '<span class="tool-price">' + priceText + '</span>' : '') +
+        '<a class="btn upgrade-cta" href="' + subscribeUrl + '" target="_blank" rel="noopener">' +
+        (addonUrl ? 'Subscribe' : 'Upgrade to ' + prettyTier(tool.minTier)) + '</a>';
     }
     card.innerHTML = '<h3>' + tool.name + '</h3>' +
-      '<p>' + (access ? 'Open this calculator in a new tab.' : 'Upgrade your membership to unlock this tool.') + '</p>' +
+      '<p>' + (access ? 'Open this calculator in a new tab.' : (addonPrice != null ? 'Subscribe as an add-on to unlock this tool.' : 'Upgrade your membership to unlock this tool.')) + '</p>' +
       '<div class="tool-meta">' + lockLine + pills + '</div>' +
       '<div class="tool-actions">' + actionsHtml + '</div>';
     grid.appendChild(card);
@@ -584,7 +604,12 @@ function initTabs() {
   } catch (e) {}
   // Admins never have "expired" access; effectiveTier from getEffectiveTier (override | profile | metadata | default)
   var expired = effectiveTier !== 'admin' && effectiveTier !== 'guest' && !hasValidEntitlement(entitlements) && entitlements.some(function (e) { return e.expires_at; });
-  renderTools(effectiveTier, entitlements, expired);
+  // Fetch full entitlements (permissions + toolAccessSource) for dashboard badges
+  let userEntitlements = { permissions: {}, toolAccessSource: {} };
+  try {
+    userEntitlements = await getUserEntitlements({ revalidate: false });
+  } catch (e) {}
+  renderTools(effectiveTier, entitlements, expired, userEntitlements);
 
   // Check academy access (admin has full access)
   const hasAcademyAccess = ['admin', 'elite', 'academy_starter', 'academy_pro', 'academy_premium'].includes(effectiveTier);

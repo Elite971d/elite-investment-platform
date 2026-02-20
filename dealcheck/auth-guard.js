@@ -66,8 +66,8 @@ export function prettyTier(tier) {
 }
 
 /**
- * Run auth guard: session check, profile + tier fetch, tool tier validation.
- * Redirects to login if no session, to pricing if insufficient tier.
+ * Run auth guard: session check, profile + tier fetch, tool access validation (tier OR add-on).
+ * Redirects to login if no session, to pricing if insufficient access.
  * @param {{ tool?: string }} options - { tool: 'offer' | 'brrrr' | 'rehab' | ... }
  * @returns {Promise<{ allowed: boolean, user?: object, profile?: object, tier?: string }>}
  */
@@ -112,7 +112,15 @@ export async function runAuthGuard(options = {}) {
       window.location.replace(PRICING_URL);
       return { allowed: false };
     }
-    if (!canAccessTier(tier, requiredTier)) {
+    let hasAccess = canAccessTier(tier, requiredTier);
+    if (!hasAccess) {
+      try {
+        const { hasToolAccess } = await import('../js/entitlements.js');
+        const user = { id: session.user.id, tier };
+        hasAccess = await hasToolAccess(user, requestedTool);
+      } catch (_) {}
+    }
+    if (!hasAccess) {
       window.location.replace(PRICING_URL);
       return { allowed: false };
     }

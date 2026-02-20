@@ -134,7 +134,7 @@ body {
 
 <body>
 <div class="header">
-  <h1>Elite Investor Academy - Calculator</h1>
+  <h1><span data-brand-company>Elite Investor Academy</span> - Calculator</h1>
   <div class="actions">
     <a href="/dashboard.html" class="btn">← Dashboard</a>
   </div>
@@ -165,6 +165,10 @@ body {
 
 <script src="auth/config.js"></script>
 <script type="module" src="/js/analytics-error-boundary.js"></script>
+<script type="module">
+  import { loadAndApplyBranding } from '/js/branding-loader.js';
+  loadAndApplyBranding({ companySelector: '[data-brand-company]' });
+</script>
 <script type="module" src="/js/analytics-pageview.js" data-page="protected"></script>
 <script type="module">
 // Load Supabase from CDN
@@ -283,8 +287,15 @@ function prettyTier(tier) {
       }
     }
 
-    // Check tier access — redirect to pricing for unauthorized tier
-    if (!canAccess(userTier, requiredTier)) {
+    // Check tier access (or add-on subscription)
+    let hasAccess = canAccess(userTier, requiredTier);
+    if (!hasAccess && toolId) {
+      try {
+        const { hasToolAccess } = await import('/js/entitlements.js');
+        hasAccess = await hasToolAccess({ id: user.id, tier: userTier }, toolId);
+      } catch (_) {}
+    }
+    if (!hasAccess) {
       window.location.replace('/index.html');
       return;
     }

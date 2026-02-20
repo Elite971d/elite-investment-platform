@@ -19,12 +19,89 @@ const TOOL_ACCESS = {
   commercial: 'elite'
 };
 
+/** Tool ID → product_key for add-on entitlements */
+const TOOL_PRODUCT_KEYS = {
+  offer: 'tool_offer',
+  brrrr: 'tool_brrrr',
+  dealcheck: 'tool_dealcheck',
+  rehab: 'tool_rehabtracker',
+  rehabtracker: 'tool_rehabtracker',
+  pwt: 'tool_pwt',
+  wholesale: 'tool_wholesale',
+  commercial: 'tool_commercial',
+  buybox: 'tool_buybox',
+  profitsplit: 'tool_profitsplit'
+};
+
 const CACHE_KEY_PREFIX = 'eia_effective_tier_';
+const ENTITLEMENTS_CACHE_PREFIX = 'eia_entitlements_';
+const ENTITLEMENTS_CACHE_TTL_MS = 60 * 1000; // 1 min
 
 function canAccessTier(userTier, requiredTier) {
   const userRank = CONFIG.tierRank[userTier] || 0;
   const requiredRank = CONFIG.tierRank[requiredTier] ?? 999;
   return userRank >= requiredRank;
+}
+
+/** Check if tier includes access to tool (tier-based only). */
+function tierIncludesTool(tier, toolKey) {
+  const requiredTier = TOOL_ACCESS[toolKey];
+  if (!requiredTier) return false;
+  return canAccessTier(tier, requiredTier);
+}
+
+/**
+ * Check if user has active entitlement for product_key.
+ * @param {string} userId - User UUID
+ * @param {string} productKey - e.g. 'tool_offer', 'feature_whitelabel'
+ * @param {object} supabase - Supabase client
+ * @returns {Promise<boolean>}
+ */
+export async function userHasActiveEntitlement(userId, productKey, supabase) {
+  if (!userId || !productKey) return false;
+  const client = supabase || await getSupabase();
+  const now = new Date().toISOString();
+  const { data, error } = await client
+    .from('entitlements')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('product_key', productKey)
+    .eq('status', 'active')
+    .or(`expires_at.is.null,expires_at.gt.${now}`)
+    .limit(1)
+    .maybeSingle();
+  if (error) return false;
+  return !!data;
+}
+
+/**
+ * Check if user has tool access (tier OR add-on subscription).
+ * @param {object} user - { id, tier } (tier from effective tier)
+ * @param {string} toolKey - Tool ID: offer, brrrr, dealcheck, etc.
+ * @param {object} [supabase] - Optional Supabase client (for calculator-gate when getSupabase unavailable)
+ * @returns {Promise<boolean>}
+ */
+export async function hasToolAccess(user, toolKey, supabase) {
+  if (!user) return false;
+  const tier = user.tier ?? user.effectiveTier ?? 'guest';
+  if (tier === 'admin') return true;
+  if (tierIncludesTool(tier, toolKey)) return true;
+  const productKey = TOOL_PRODUCT_KEYS[toolKey] || `tool_${toolKey}`;
+  const client = supabase || await getSupabase();
+  return userHasActiveEntitlement(user.id, productKey, client);
+}
+
+/**
+ * Check if user has white-label access (entitlement OR elite tier).
+ * @param {object} user - { id, tier }
+ * @returns {Promise<boolean>}
+ */
+export async function hasWhiteLabelAccess(user) {
+  if (!user) return false;
+  const tier = user.tier ?? user.effectiveTier ?? 'guest';
+  if (tier === 'admin' || tier === 'elite') return true;
+  const supabase = await getSupabase();
+  return userHasActiveEntitlement(user.id, 'feature_whitelabel', supabase);
 }
 
 /**
@@ -184,10 +261,13 @@ export async function getUserEntitlements(opts = {}) {
     const role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
 
     if (!user) {
+      const perms = Object.keys(TOOL_ACCESS).reduce((acc, id) => ({ ...acc, [id]: false }), {});
+      const sources = Object.keys(TOOL_ACCESS).reduce((acc, id) => ({ ...acc, [id]: null }), {});
       return {
         tier: 'guest',
         role: 'user',
-        permissions: Object.keys(TOOL_ACCESS).reduce((acc, id) => ({ ...acc, [id]: false }), {}),
+        permissions: perms,
+        toolAccessSource: sources,
         subscription_status: undefined,
         billing_provider: undefined,
         renewal_date: undefined
@@ -198,8 +278,14 @@ export async function getUserEntitlements(opts = {}) {
     const tier = effectiveTier === undefined || effectiveTier === null || effectiveTier === '' ? 'guest' : String(effectiveTier);
 
     const permissions = {};
-    for (const [toolId, requiredTier] of Object.entries(TOOL_ACCESS)) {
-      permissions[toolId] = canAccessTier(tier, requiredTier);
+    const toolAccessSource = {}; // 'tier' | 'addon' for each tool
+    const userObj = { id: user.id, tier };
+    for (const [toolId] of Object.entries(TOOL_ACCESS)) {
+      const fromTier = canAccessTier(tier, TOOL_ACCESS[toolId]);
+      const productKey = TOOL_PRODUCT_KEYS[toolId] || `tool_${toolId}`;
+      const fromAddon = fromTier ? false : await userHasActiveEntitlement(user.id, productKey, supabase);
+      permissions[toolId] = fromTier || fromAddon;
+      toolAccessSource[toolId] = fromTier ? 'tier' : (fromAddon ? 'addon' : null);
     }
 
     // Optional: include subscription info from member_profiles (read-only, no gating here)
@@ -215,6 +301,7 @@ export async function getUserEntitlements(opts = {}) {
       tier,
       role,
       permissions,
+      toolAccessSource, // 'tier' | 'addon' per tool for badge display
       subscription_status,
       billing_provider: 'square',
       renewal_date,
@@ -222,10 +309,13 @@ export async function getUserEntitlements(opts = {}) {
     };
   } catch (err) {
     console.warn('[entitlements] getUserEntitlements failed:', err?.message || err);
+    const perms = Object.keys(TOOL_ACCESS).reduce((acc, id) => ({ ...acc, [id]: false }), {});
+    const sources = Object.keys(TOOL_ACCESS).reduce((acc, id) => ({ ...acc, [id]: null }), {});
     return {
       tier: 'guest',
       role: 'user',
-      permissions: Object.keys(TOOL_ACCESS).reduce((acc, id) => ({ ...acc, [id]: false }), {}),
+      permissions: perms,
+      toolAccessSource: sources,
       subscription_status: undefined,
       billing_provider: undefined,
       renewal_date: undefined

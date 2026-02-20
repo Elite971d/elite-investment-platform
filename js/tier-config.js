@@ -208,6 +208,34 @@ export function isOneTimeTier(tier) {
   return TIER_HIERARCHY[tier]?.period === 'one-time';
 }
 
+/**
+ * Tool add-on product keys and pricing (for dashboard subscribe CTA).
+ * Add Square link IDs as you create them in Square.
+ */
+export const TOOL_ADDONS = {
+  offer: { productKey: 'tool_offer', price: null, period: 'month', squareLinkId: null },
+  brrrr: { productKey: 'tool_brrrr', price: null, period: 'month', squareLinkId: null },
+  dealcheck: { productKey: 'tool_dealcheck', price: null, period: 'month', squareLinkId: null },
+  rehab: { productKey: 'tool_rehabtracker', price: null, period: 'month', squareLinkId: null },
+  rehabtracker: { productKey: 'tool_rehabtracker', price: null, period: 'month', squareLinkId: null },
+  pwt: { productKey: 'tool_pwt', price: null, period: 'month', squareLinkId: null },
+  wholesale: { productKey: 'tool_wholesale', price: null, period: 'month', squareLinkId: null },
+  commercial: { productKey: 'tool_commercial', price: null, period: 'month', squareLinkId: null },
+  buybox: { productKey: 'tool_buybox', price: null, period: 'month', squareLinkId: null },
+  profitsplit: { productKey: 'tool_profitsplit', price: null, period: 'month', squareLinkId: null }
+};
+
+/**
+ * Get add-on checkout URL for a tool (null if not configured).
+ * @param {string} toolId - e.g. 'offer', 'brrrr'
+ * @returns {string|null}
+ */
+export function getToolAddonPaymentLink(toolId) {
+  const addon = TOOL_ADDONS[toolId];
+  if (!addon?.squareLinkId) return null;
+  return `https://checkout.square.site/merchant/MLVT882SAC2R4/checkout/${addon.squareLinkId}`;
+}
+
 // Future: Lifetime license support
 export const LIFETIME_TIERS = []; // Can be populated for lifetime access grants
 

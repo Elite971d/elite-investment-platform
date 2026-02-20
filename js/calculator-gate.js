@@ -177,13 +177,26 @@ export async function runCalculatorGate(toolId, options = {}) {
     return { allowed: false };
   }
 
-  // Resolve role and tier ONLY from Supabase auth metadata
+  // Resolve role and tier from Supabase auth metadata (and member_profiles for add-on support)
   const user = session.user;
   const role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
-  const tierFromMeta = user?.user_metadata?.tier ?? user?.app_metadata?.tier ?? 'guest';
-  const tier = (role === 'admin' ? 'admin' : tierFromMeta) || 'guest';
+  let tier = (role === 'admin' ? 'admin' : null) || user?.user_metadata?.tier ?? user?.app_metadata?.tier ?? 'guest';
+  if (tier !== 'admin') {
+    try {
+      const { data: mp } = await supabase.from('member_profiles').select('tier').eq('id', user.id).maybeSingle();
+      if (mp?.tier) tier = mp.tier;
+    } catch (_) {}
+    tier = tier || 'guest';
+  }
 
-  if (!canAccessTool(tier, toolId)) {
+  let hasAccess = canAccessTool(tier, toolId);
+  if (!hasAccess) {
+    try {
+      const { hasToolAccess } = await import('./entitlements.js');
+      hasAccess = await hasToolAccess({ id: user.id, tier }, toolId, supabase);
+    } catch (_) {}
+  }
+  if (!hasAccess) {
     try {
       import('./analytics.js').then(function (m) {
         m.track('tier_mismatch', { tier, role, page: toolId, metadata: { required_tier: TOOL_ACCESS[toolId] } });
