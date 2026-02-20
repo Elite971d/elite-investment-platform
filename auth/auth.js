@@ -1,10 +1,10 @@
 /**
  * Elite Investor Academy - Global auth guard and helpers
  * Production-ready: no auth logic in HTML; all behavior here.
- * Redirects validated; graceful error handling.
+ * Uses shared Supabase client from supabase.js (getSupabaseAuth).
  */
 
-import { supabase } from './supabase.js';
+import { getSupabaseAuth } from './supabase.js';
 
 /** Allowed redirect targets (no open redirect) */
 const ALLOWED_REDIRECTS = [
@@ -40,6 +40,7 @@ function resolveRedirect(fallback = '/dashboard.html') {
  */
 export async function requireAuth() {
   try {
+    const supabase = await getSupabaseAuth();
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) {
       console.warn('[auth] getSession failed:', error.message || error);
@@ -66,6 +67,7 @@ export async function requireAuth() {
  */
 export async function redirectIfAuthenticated(target = '/dashboard.html') {
   try {
+    const supabase = await getSupabaseAuth();
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) {
       console.warn('[auth] getSession failed (redirectIfAuthenticated):', error.message || error);
@@ -85,6 +87,7 @@ export async function redirectIfAuthenticated(target = '/dashboard.html') {
  */
 export async function getCurrentUser() {
   try {
+    const supabase = await getSupabaseAuth();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) console.warn('[auth] getUser failed:', error.message || error);
     return user ?? null;
@@ -99,6 +102,7 @@ export async function getCurrentUser() {
  */
 export async function logout() {
   try {
+    const supabase = await getSupabaseAuth();
     await supabase.auth.signOut();
   } catch (err) {
     console.warn('[auth] signOut failed:', err?.message || err);
@@ -113,6 +117,7 @@ export async function logout() {
  * @returns {Promise<{ data?: object, error?: import('@supabase/supabase-js').AuthError }>}
  */
 export async function loginWithPassword(email, password) {
+  const supabase = await getSupabaseAuth();
   return supabase.auth.signInWithPassword({ email: email.trim(), password });
 }
 
@@ -122,6 +127,7 @@ export async function loginWithPassword(email, password) {
  * @returns {Promise<{ data?: object, error?: import('@supabase/supabase-js').AuthError }>}
  */
 export async function sendMagicLink(email) {
+  const supabase = await getSupabaseAuth();
   const redirectTo = 'https://invest.elitesolutionsnetwork.com/dashboard.html';
   return supabase.auth.signInWithOtp({
     email: email.trim(),
@@ -135,6 +141,7 @@ export async function sendMagicLink(email) {
  * @returns {Promise<{ data?: object, error?: import('@supabase/supabase-js').AuthError }>}
  */
 export async function requestPasswordReset(email) {
+  const supabase = await getSupabaseAuth();
   const redirectTo = 'https://invest.elitesolutionsnetwork.com/reset.html';
   return supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
 }
@@ -145,6 +152,7 @@ export async function requestPasswordReset(email) {
  * @returns {Promise<{ data?: object, error?: import('@supabase/supabase-js').AuthError }>}
  */
 export async function updateUserPassword(newPassword) {
+  const supabase = await getSupabaseAuth();
   return supabase.auth.updateUser({ password: newPassword });
 }
 
@@ -160,6 +168,7 @@ export async function setSessionFromHash() {
   const accessToken = params.get('access_token');
   const refreshToken = params.get('refresh_token');
   if (!accessToken || !refreshToken) return false;
+  const supabase = await getSupabaseAuth();
   const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
   return !error;
 }

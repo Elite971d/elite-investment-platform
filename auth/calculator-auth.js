@@ -55,7 +55,7 @@
     var supabase, sessionResult, session;
     try {
       var authModule = await import('/js/supabase-auth-cookies.js');
-      supabase = await authModule.createSupabaseAuthClient(supabaseUrl, supabaseKey);
+      supabase = await authModule.getSupabase();
       sessionResult = await supabase.auth.getSession();
       session = sessionResult.data && sessionResult.data.session;
     } catch (e) {
@@ -77,6 +77,9 @@
 
     var user = session.user;
     var role = (user && (user.user_metadata && user.user_metadata.role) || (user.app_metadata && user.app_metadata.role)) || 'user';
+    if (user && user.email && user.email.toLowerCase() === 'admin@elitesolutionsnetwork.com') {
+      role = 'admin';
+    }
     if (role !== 'admin') {
       try {
         var mpRes = await supabase.from('member_profiles').select('role').eq('id', user.id).maybeSingle();

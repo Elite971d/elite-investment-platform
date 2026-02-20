@@ -1,17 +1,14 @@
 /**
- * Elite Investor Academy - Shared Supabase Auth with Cross-Subdomain Cookies
+ * Elite Investor Academy - ONE shared Supabase auth client
  *
- * ROOT CAUSE FIX: Login happens on invest.elitesolutionsnetwork.com but tools
- * are served from dealcheck.elitesolutionsnetwork.com. localStorage is per-origin
- * so the subdomain never sees the session. This module ensures ALL auth uses
- * cookies scoped to .elitesolutionsnetwork.com so session persists across
- * invest.* and dealcheck.* subdomains.
+ * Session persistence and domain compatibility:
+ * - On invest.* / dealcheck.* (elitesolutionsnetwork.com): cookie storage with
+ *   domain=.elitesolutionsnetwork.com so session is shared across subdomains.
+ * - On Vercel preview, localhost, static dashboard: localStorage so session
+ *   persists without cross-origin cookie limits.
  *
- * Requirements:
- *   - Domain=.elitesolutionsnetwork.com (note leading dot for subdomains)
- *   - Path=/
- *   - Secure (when https)
- *   - SameSite=Lax (same-site subdomains; cookies sent on top-level nav)
+ * All pages MUST use getSupabase() from this module (or re-exports). No duplicate
+ * createClient() calls elsewhere.
  */
 
 const COOKIE_DOMAIN = '.elitesolutionsnetwork.com';
@@ -26,9 +23,7 @@ function getCookieDomain() {
 }
 
 /**
- * Cookie-based storage adapter for Supabase auth.
- * Must be used on BOTH invest and dealcheck so they share the same session.
- * On localhost, omits domain so cookies work; on production uses .elitesolutionsnetwork.com.
+ * Cookie-based storage adapter for Supabase auth (cross-subdomain on ESN).
  */
 export function getCookieStorage() {
   return {
@@ -56,8 +51,35 @@ export function getCookieStorage() {
 }
 
 /**
- * Create Supabase client with cross-subdomain cookie storage.
- * Use in browser modules (async import of @supabase/supabase-js from CDN).
+ * Get storage for Supabase auth: cookie on ESN (invest/dealcheck) for subdomain
+ * sharing, localStorage elsewhere (Vercel preview, localhost, static).
+ */
+function getAuthStorage() {
+  if (typeof window === 'undefined') return undefined;
+  const h = window.location?.hostname || '';
+  if (h === 'localhost' || h === '127.0.0.1' || h.endsWith('.vercel.app') || !h.includes('elitesolutionsnetwork.com')) {
+    return window.localStorage;
+  }
+  return getCookieStorage();
+}
+
+let supabaseSingleton = null;
+
+/**
+ * Canonical Supabase URL and anon key (from window or env).
+ */
+function getSupabaseConfig() {
+  const url = (typeof window !== 'undefined' && window.__SUPABASE_URL__) ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
+    'https://YOUR_PROJECT_ID.supabase.co';
+  const anonKey = (typeof window !== 'undefined' && window.__SUPABASE_ANON_KEY__) ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
+    'YOUR_PUBLIC_ANON_KEY';
+  return { url, anonKey };
+}
+
+/**
+ * Create Supabase client with unified auth options. Used internally by getSupabase().
  *
  * @param {string} url - Supabase project URL
  * @param {string} anonKey - Supabase anon key
@@ -65,15 +87,27 @@ export function getCookieStorage() {
  */
 export async function createSupabaseAuthClient(url, anonKey) {
   const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+  const storage = getAuthStorage();
   const authOpts = {
-    storage: getCookieStorage(),
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storage: storage || undefined
   };
   const client = createClient(url, anonKey, { auth: authOpts });
   if (typeof console !== 'undefined' && console.log) {
     console.log('[supabase-auth] Client created:', { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true });
   }
   return client;
+}
+
+/**
+ * Get the single shared Supabase client. All pages must use this (or re-exports).
+ * @returns {Promise<import('@supabase/supabase-js').SupabaseClient>}
+ */
+export async function getSupabase() {
+  if (supabaseSingleton) return supabaseSingleton;
+  const { url, anonKey } = getSupabaseConfig();
+  supabaseSingleton = await createSupabaseAuthClient(url, anonKey);
+  return supabaseSingleton;
 }

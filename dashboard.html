@@ -347,19 +347,15 @@ z-index: 9999;
 <script type="module" src="/js/analytics-error-boundary.js"></script>
 <script type="module" src="/js/analytics-pageview.js" data-page="dashboard"></script>
 <script type="module">
-// Supabase with cross-subdomain cookie storage (invest + dealcheck share session)
-const { createSupabaseAuthClient } = await import('./js/supabase-auth-cookies.js');
+// Single shared Supabase client (invest + dealcheck + Vercel + static)
+const { getSupabase } = await import('./js/supabase-auth-cookies.js');
 const { getMemberTools, DEALCHECK_TOOLS_BASE } = await import('./js/tools-config.js');
 const { getTierPaymentLink, getToolAddonPaymentLink, TOOL_ADDONS } = await import('./js/tier-config.js');
 const { getUserEntitlements } = await import('./js/entitlements.js');
 const { track } = await import('./js/analytics.js');
 const { getEffectiveTierCached, revalidateEffectiveTier } = await import('./js/entitlements.js');
 
-// Config: auth/config.js (window) or build env, then placeholder
-const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
-const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.__SUPABASE_ANON_KEY__) || import.meta.env?.VITE_SUPABASE_ANON_KEY || 'YOUR_PUBLIC_ANON_KEY';
-
-const supabase = await createSupabaseAuthClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = await getSupabase();
 
 // Tier configuration (admin = role override, full access)
 const TIER_RANK = { guest:0, starter:1, serious:2, elite:3, academy_starter:1, academy_pro:2, academy_premium:3, admin:999 };
@@ -406,24 +402,29 @@ function unlockAllTools() {
   });
 }
 
-// Check authentication and redirect if needed (admin override only when no Supabase session)
+// Client-side session check first (do not rely solely on middleware)
 async function checkAuth() {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
-    if (!error && session) return session;
-    if (error) console.warn('[dashboard] getSession failed:', error.message || error);
-    const adminOverride = localStorage.getItem('esn_admin_override');
-    if (adminOverride === 'true') {
-      console.log('Emergency Admin Override Active');
-      return { user: { id: 'admin-override', email: 'admin@elitesolutionsnetwork.com', user_metadata: { role: 'admin' }, app_metadata: { role: 'admin' } } };
+    if (error) {
+      console.warn('[dashboard] getSession failed:', error.message || error);
     }
-    window.location.replace('/login.html');
-    return null;
+    if (!session) {
+      console.log('[dashboard] No session found');
+      const adminOverride = localStorage.getItem('esn_admin_override');
+      if (adminOverride === 'true') {
+        console.log('[dashboard] Emergency Admin Override Active');
+        return { user: { id: 'admin-override', email: 'admin@elitesolutionsnetwork.com', user_metadata: { role: 'admin' }, app_metadata: { role: 'admin' } } };
+      }
+      window.location.replace('/login.html');
+      return null;
+    }
+    return session;
   } catch (err) {
     console.warn('[dashboard] checkAuth failed:', err?.message || err);
     const adminOverride = localStorage.getItem('esn_admin_override');
     if (adminOverride === 'true') {
-      console.log('Emergency Admin Override Active');
+      console.log('[dashboard] Emergency Admin Override Active');
       return { user: { id: 'admin-override', email: 'admin@elitesolutionsnetwork.com', user_metadata: { role: 'admin' }, app_metadata: { role: 'admin' } } };
     }
     window.location.replace('/login.html');
@@ -552,22 +553,23 @@ function initTabs() {
   const { data: profile } = await getUserProfile(user.id);
   let role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
   if (profile?.role === 'admin') role = 'admin';
-  document.getElementById('accountRole').textContent = role === 'admin' ? 'Admin' : role;
-
-  if (role === 'admin') {
-    document.getElementById('adminLink').style.display = 'inline-flex';
+  // Admin override (failsafe): email === admin@elitesolutionsnetwork.com → always admin, unlock all tools
+  if (user?.email?.toLowerCase() === 'admin@elitesolutionsnetwork.com') {
+    role = 'admin';
   }
-
-  // Check member_profiles.role for admin (admin must never be locked out)
   if (role !== 'admin') {
     try {
       const { data: mpRole } = await supabase.from('member_profiles').select('role').eq('id', user.id).maybeSingle();
       if (mpRole?.role === 'admin') role = 'admin';
     } catch (_) {}
   }
-  // Hardcoded admin: admin@elitesolutionsnetwork.com + esn_hardcode_admin cookie
   if (role !== 'admin' && user?.email?.toLowerCase() === 'admin@elitesolutionsnetwork.com' && /esn_hardcode_admin=1(?:\s|;|$)/.test(document.cookie || '')) {
     role = 'admin';
+  }
+  document.getElementById('accountRole').textContent = role === 'admin' ? 'Admin' : role;
+
+  if (role === 'admin') {
+    document.getElementById('adminLink').style.display = 'inline-flex';
   }
 
   // Auth debug: user object and role for session/tool verification
@@ -660,6 +662,10 @@ function initTabs() {
   } catch (e) {}
   renderTools(effectiveTier, entitlements, expired, userEntitlements);
 
+  // Admin always unlocks all calculators (client-side confirmation)
+  if (role === 'admin') {
+    unlockAllTools();
+  }
   if (localStorage.getItem('esn_admin_override') === 'true') {
     unlockAllTools();
   }

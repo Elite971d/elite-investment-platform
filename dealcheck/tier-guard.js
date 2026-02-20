@@ -1,9 +1,9 @@
 // ============================================
 // DealCheck Subdomain - Tier Guard Utilities
 // ============================================
-// Tier access control for calculators. Redirect to /pricing if unauthorized.
+// Tier access control for calculators. Uses shared Supabase client.
 
-import { supabase } from './supabase.js';
+import { getSupabaseDealcheck } from './supabase.js';
 
 const PRICING_URL = 'https://invest.elitesolutionsnetwork.com/index.html';
 
@@ -37,7 +37,7 @@ export function canAccessTier(userTier, requiredTier) {
   return userRank >= requiredRank;
 }
 
-async function getUserProfile(userId) {
+async function getUserProfile(supabase, userId) {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -58,9 +58,11 @@ function resolveEffectiveTier(profile) {
 
 export async function getUserTier() {
   try {
+    const supabase = await getSupabaseDealcheck();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return 'guest';
-    const { data: profile, error } = await getUserProfile(user.id);
+    if (user.email?.toLowerCase() === 'admin@elitesolutionsnetwork.com') return 'admin';
+    const { data: profile, error } = await getUserProfile(supabase, user.id);
     if (error || !profile) return 'guest';
     return resolveEffectiveTier(profile);
   } catch (err) {

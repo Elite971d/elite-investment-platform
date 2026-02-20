@@ -533,15 +533,12 @@ body{
 <script type="module" src="/js/analytics-pageview.js" data-page="admin"></script>
 <script type="module">
 // Supabase with cross-subdomain cookie storage
-const { createSupabaseAuthClient } = await import('./js/supabase-auth-cookies.js');
+const { getSupabase } = await import('./js/supabase-auth-cookies.js');
 const { getMemberTools } = await import('./js/tools-config.js');
 const { getInternalTools } = await import('./js/tools-config.js');
 
 // Config: auth/config.js (window) or build env, then placeholder
-const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || import.meta.env?.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co';
-const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.__SUPABASE_ANON_KEY__) || import.meta.env?.VITE_SUPABASE_ANON_KEY || 'YOUR_PUBLIC_ANON_KEY';
-
-const supabase = await createSupabaseAuthClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = await getSupabase();
 
 // Tier display names
 function prettyTier(tier) {

@@ -148,7 +148,9 @@ export async function runCalculatorGate(toolId, options = {}) {
     }
   }
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  const supabaseUrlResolved = supabaseUrl || (typeof window !== 'undefined' && window.__SUPABASE_URL__);
+  const supabaseAnonKeyResolved = supabaseAnonKey || (typeof window !== 'undefined' && window.__SUPABASE_ANON_KEY__);
+  if (!supabaseUrlResolved || !supabaseAnonKeyResolved || supabaseUrlResolved === 'https://YOUR_PROJECT_ID.supabase.co') {
     trackCalculatorAccess(false, { reason: 'gate_not_configured' });
     if (inIframe) {
       document.body.innerHTML = '<div style="font-family:sans-serif;padding:2rem;text-align:center;color:#333;">' +
@@ -159,8 +161,8 @@ export async function runCalculatorGate(toolId, options = {}) {
     return { allowed: false };
   }
 
-  const { createSupabaseAuthClient } = await import('./supabase-auth-cookies.js');
-  const supabase = await createSupabaseAuthClient(supabaseUrl, supabaseAnonKey);
+  const { getSupabase } = await import('./supabase-auth-cookies.js');
+  const supabase = await getSupabase();
 
   let session, sessionError;
   try {
@@ -184,10 +186,14 @@ export async function runCalculatorGate(toolId, options = {}) {
     return { allowed: false };
   }
 
-  // Resolve role and tier: profile.role (admin bypass) > JWT metadata > member_profiles > profiles > metadata
+  // Resolve role and tier: admin email (failsafe) > profile.role > JWT metadata > member_profiles > profiles
   const user = session.user;
   let role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
   let tier = (role === 'admin' ? 'admin' : null) || user?.user_metadata?.tier ?? user?.app_metadata?.tier ?? null;
+  if (user?.email?.toLowerCase() === 'admin@elitesolutionsnetwork.com') {
+    role = 'admin';
+    tier = 'admin';
+  }
   try {
     const { data: mp } = await supabase.from('member_profiles').select('role, tier').eq('id', user.id).maybeSingle();
     if (mp?.role === 'admin') role = 'admin';

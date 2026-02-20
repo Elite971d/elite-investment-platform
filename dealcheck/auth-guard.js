@@ -1,14 +1,14 @@
 /**
  * DealCheck Subdomain - Auth Guard
- * 1. Check supabase.auth.getSession()
+ * 1. Check supabase.auth.getSession() (shared client)
  * 2. If no session → redirect to invest login page
  * 3. Fetch user profile + tier
- * 4. Validate tier vs requested tool
- * 5. Redirect to pricing page if insufficient access
+ * 4. Admin override: email === admin@elitesolutionsnetwork.com → tier admin, unlock all
+ * 5. Validate tier vs requested tool
  * All calculator access MUST go through this guard; no direct calculator URLs.
  */
 
-import { supabase } from './supabase.js';
+import { getSupabaseDealcheck } from './supabase.js';
 
 const INVEST_ORIGIN = 'https://invest.elitesolutionsnetwork.com';
 const LOGIN_URL = INVEST_ORIGIN + '/login.html';
@@ -74,6 +74,7 @@ export function prettyTier(tier) {
 export async function runAuthGuard(options = {}) {
   const { tool: requestedTool } = options;
 
+  const supabase = await getSupabaseDealcheck();
   let session, sessionError;
   try {
     const result = await supabase.auth.getSession();
@@ -111,6 +112,7 @@ export async function runAuthGuard(options = {}) {
 
   let role = profile?.role ?? mp?.role ?? session.user?.user_metadata?.role ?? session.user?.app_metadata?.role ?? 'user';
   if (mp?.role === 'admin' || profile?.role === 'admin') role = 'admin';
+  if (session.user?.email?.toLowerCase() === 'admin@elitesolutionsnetwork.com') role = 'admin';
 
   const rawTier = profile?.tier ?? mp?.tier ?? session.user?.user_metadata?.tier ?? session.user?.app_metadata?.tier;
   const tier = role === 'admin' ? 'admin' : (rawTier === undefined || rawTier === null || rawTier === '' ? 'guest' : String(rawTier));

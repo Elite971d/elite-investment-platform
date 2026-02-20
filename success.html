@@ -108,10 +108,8 @@ h1 { font-size: 2rem; margin-bottom: 1rem; font-weight: 600; }
 <script type="module" src="/js/analytics-error-boundary.js"></script>
 <script type="module" src="/js/analytics-pageview.js" data-page="success"></script>
 <script type="module">
-const { createSupabaseAuthClient } = await import('./js/supabase-auth-cookies.js');
-const SUPABASE_URL = (typeof window !== 'undefined' && window.__SUPABASE_URL__) || 'https://YOUR_PROJECT_ID.supabase.co';
-const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.__SUPABASE_ANON_KEY__) || 'YOUR_PUBLIC_ANON_KEY';
-const supabase = await createSupabaseAuthClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const { getSupabase } = await import('./js/supabase-auth-cookies.js');
+const supabase = await getSupabase();
 
 function showError(msg) {
   document.getElementById('errorMsg').classList.add('show');

@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', async function () {
   }
 
   const ADMIN_EMAIL = 'admin@elitesolutionsnetwork.com';
-  const ADMIN_PASSWORD = 'APPNETWOR999';
 
   function setHardcodeAdminCookie() {
     const maxAge = 7 * 24 * 60 * 60;
@@ -24,23 +23,11 @@ document.addEventListener('DOMContentLoaded', async function () {
   }
 
   try {
-    const { createSupabaseAuthClient } = await import('./supabase-auth-cookies.js');
+    const { getSupabase } = await import('./supabase-auth-cookies.js');
     const { track } = await import('./analytics.js');
 
-    const SUPABASE_URL =
-      (typeof window !== 'undefined' && window.__SUPABASE_URL__) ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
-      'https://YOUR_PROJECT_ID.supabase.co';
-    const SUPABASE_ANON_KEY =
-      (typeof window !== 'undefined' && window.__SUPABASE_ANON_KEY__) ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
-      'YOUR_PUBLIC_ANON_KEY';
-
-    const supabase = await createSupabaseAuthClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('[login] Supabase client (persistSession, autoRefreshToken, detectSessionInUrl):', {
-      auth: supabase?.auth ? 'present' : 'missing',
-      url: SUPABASE_URL?.replace(/^https?:\/\//, '').slice(0, 30) + '...'
-    });
+    const supabase = await getSupabase();
+    console.log('[login] Supabase client (shared):', { auth: supabase?.auth ? 'present' : 'missing' });
 
     // Check if already logged in (redirect to dashboard)
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -82,22 +69,6 @@ document.addEventListener('DOMContentLoaded', async function () {
       loading?.classList.add('show');
       if (submitBtn) submitBtn.disabled = true;
 
-      const isHardcodeAdmin = email.toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD;
-
-      // Emergency admin bypass: if admin email + password, set override and redirect immediately (works even if Supabase fails)
-      if (email.toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        localStorage.setItem('esn_admin_override', 'true');
-        localStorage.setItem('esn_user_role', 'admin');
-        const maxAge = 7 * 24 * 60 * 60;
-        const domain = typeof window !== 'undefined' && window.location?.hostname?.includes('elitesolutionsnetwork.com')
-          ? ';domain=.elitesolutionsnetwork.com'
-          : '';
-        const secure = typeof window !== 'undefined' && window.location?.protocol === 'https:' ? ';Secure' : '';
-        document.cookie = 'esn_admin_override=1;path=/' + domain + ';max-age=' + maxAge + ';SameSite=Lax' + secure;
-        window.location.replace('/dashboard.html');
-        return;
-      }
-
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -113,37 +84,44 @@ document.addEventListener('DOMContentLoaded', async function () {
           return;
         }
 
-        const role = isHardcodeAdmin ? 'admin' : (data.user?.user_metadata?.role ?? data.user?.app_metadata?.role ?? 'user');
-        if (isHardcodeAdmin) {
-          setHardcodeAdminCookie();
-        }
-
-        console.log('[login] User object:', data?.user);
-        console.log('[login] Session:', data?.session ? { access_token: '(present)', expires_at: data.session.expires_at } : null);
-        console.log('[login] Tool unlock status:', isHardcodeAdmin ? 'admin — all tools unlocked' : 'standard');
-        try {
-          const tier = data.user?.user_metadata?.tier ?? data.user?.app_metadata?.tier ?? 'guest';
-          track('login_success', { user_id: data.user?.id, role, tier, page: 'login' });
-        } catch (_) {}
-
-        // Verify session immediately after login
-        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-        if (sessionErr) {
-          console.error('[login] Session verification failed:', sessionErr?.message || sessionErr);
+        // Wait for session confirmation before any redirect
+        const sessionData = await supabase.auth.getSession();
+        if (sessionData.error) {
+          console.error('[login] Session verification failed:', sessionData.error?.message || sessionData.error);
           if (errorMsg) errorMsg.textContent = 'Session could not be verified. Please try again.';
           errorMsg?.classList.add('show');
           loading?.classList.remove('show');
           if (submitBtn) submitBtn.disabled = false;
           return;
         }
-        if (!session) {
-          console.error('[login] Login succeeded but getSession() returned null — session may not persist.');
+        if (!sessionData.data?.session) {
+          console.error('[login] Session not established after signIn');
           if (errorMsg) errorMsg.textContent = 'Session could not be established. Please try again or clear cookies.';
           errorMsg?.classList.add('show');
           loading?.classList.remove('show');
           if (submitBtn) submitBtn.disabled = false;
           return;
         }
+
+        const isAdmin = email.toLowerCase() === ADMIN_EMAIL;
+        const role = isAdmin ? 'admin' : (data.user?.user_metadata?.role ?? data.user?.app_metadata?.role ?? 'user');
+        if (isAdmin) {
+          setHardcodeAdminCookie();
+          localStorage.setItem('esn_admin_override', 'true');
+          localStorage.setItem('esn_user_role', 'admin');
+          const maxAge = 7 * 24 * 60 * 60;
+          const domain = typeof window !== 'undefined' && window.location?.hostname?.includes('elitesolutionsnetwork.com')
+            ? ';domain=.elitesolutionsnetwork.com'
+            : '';
+          const secure = typeof window !== 'undefined' && window.location?.protocol === 'https:' ? ';Secure' : '';
+          document.cookie = 'esn_admin_override=1;path=/' + domain + ';max-age=' + maxAge + ';SameSite=Lax' + secure;
+        }
+
+        console.log('[login] Session established:', { user_id: data.user?.id, role });
+        try {
+          const tier = data.user?.user_metadata?.tier ?? data.user?.app_metadata?.tier ?? 'guest';
+          track('login_success', { user_id: data.user?.id, role, tier, page: 'login' });
+        } catch (_) {}
 
         if (successMsg) successMsg.textContent = 'Login successful! Redirecting...';
         successMsg?.classList.add('show');
