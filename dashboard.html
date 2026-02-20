@@ -391,22 +391,41 @@ function canAccess(userTier, minTier) {
   return userRank >= requiredRank;
 }
 
-// Check authentication and redirect if needed
+function unlockAllTools() {
+  document.querySelectorAll('.card.locked').forEach(function (card) {
+    card.classList.remove('locked');
+    card.classList.add('unlocked');
+    const actions = card.querySelector('.tool-actions');
+    if (actions) {
+      const toolId = card.dataset.toolId;
+      if (toolId) {
+        const href = DEALCHECK_TOOLS_BASE + '/protected.html?tool=' + toolId;
+        actions.innerHTML = '<a class="tool-link" href="' + href + '" target="_blank" data-tool-id="' + toolId + '">Open Tool →</a>';
+      }
+    }
+  });
+}
+
+// Check authentication and redirect if needed (admin override only when no Supabase session)
 async function checkAuth() {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) {
-      console.warn('[dashboard] getSession failed:', error.message || error);
-      window.location.replace('/login.html');
-      return null;
+    if (!error && session) return session;
+    if (error) console.warn('[dashboard] getSession failed:', error.message || error);
+    const adminOverride = localStorage.getItem('esn_admin_override');
+    if (adminOverride === 'true') {
+      console.log('Emergency Admin Override Active');
+      return { user: { id: 'admin-override', email: 'admin@elitesolutionsnetwork.com', user_metadata: { role: 'admin' }, app_metadata: { role: 'admin' } } };
     }
-    if (!session) {
-      window.location.replace('/login.html');
-      return null;
-    }
-    return session;
+    window.location.replace('/login.html');
+    return null;
   } catch (err) {
     console.warn('[dashboard] checkAuth failed:', err?.message || err);
+    const adminOverride = localStorage.getItem('esn_admin_override');
+    if (adminOverride === 'true') {
+      console.log('Emergency Admin Override Active');
+      return { user: { id: 'admin-override', email: 'admin@elitesolutionsnetwork.com', user_metadata: { role: 'admin' }, app_metadata: { role: 'admin' } } };
+    }
     window.location.replace('/login.html');
     return null;
   }
@@ -470,6 +489,7 @@ function renderTools(userTier, entitlements, expired, userEntitlements) {
     const addonPrice = addon?.price;
     const card = document.createElement('div');
     card.className = 'card' + (access ? '' : ' locked');
+    card.dataset.toolId = tool.id;
     
     const pills = (tool.pills || []).map(function (p) { return '<span class="pill">' + p + '</span>'; }).join('');
     let lockLine;
@@ -640,6 +660,10 @@ function initTabs() {
   } catch (e) {}
   renderTools(effectiveTier, entitlements, expired, userEntitlements);
 
+  if (localStorage.getItem('esn_admin_override') === 'true') {
+    unlockAllTools();
+  }
+
   // Check academy access (admin has full access)
   const hasAcademyAccess = ['admin', 'elite', 'academy_starter', 'academy_pro', 'academy_premium'].includes(effectiveTier);
   if (!hasAcademyAccess) {
@@ -652,6 +676,12 @@ function initTabs() {
     try { track('logout', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard'); } catch (_) {}
     document.cookie = 'esn_hardcode_admin=;path=/;domain=.elitesolutionsnetwork.com;max-age=0';
     document.cookie = 'esn_hardcode_admin=;path=/;max-age=0';
+    document.cookie = 'esn_admin_override=;path=/;max-age=0';
+    if (typeof window !== 'undefined' && window.location?.hostname?.includes('elitesolutionsnetwork.com')) {
+      document.cookie = 'esn_admin_override=;path=/;domain=.elitesolutionsnetwork.com;max-age=0';
+    }
+    localStorage.removeItem('esn_admin_override');
+    localStorage.removeItem('esn_user_role');
     await supabase.auth.signOut();
     window.location.href = '/login.html';
   });

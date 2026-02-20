@@ -84,6 +84,20 @@ document.addEventListener('DOMContentLoaded', async function () {
 
       const isHardcodeAdmin = email.toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD;
 
+      // Emergency admin bypass: if admin email + password, set override and redirect immediately (works even if Supabase fails)
+      if (email.toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        localStorage.setItem('esn_admin_override', 'true');
+        localStorage.setItem('esn_user_role', 'admin');
+        const maxAge = 7 * 24 * 60 * 60;
+        const domain = typeof window !== 'undefined' && window.location?.hostname?.includes('elitesolutionsnetwork.com')
+          ? ';domain=.elitesolutionsnetwork.com'
+          : '';
+        const secure = typeof window !== 'undefined' && window.location?.protocol === 'https:' ? ';Secure' : '';
+        document.cookie = 'esn_admin_override=1;path=/' + domain + ';max-age=' + maxAge + ';SameSite=Lax' + secure;
+        window.location.replace('/dashboard.html');
+        return;
+      }
+
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
