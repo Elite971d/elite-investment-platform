@@ -40,11 +40,9 @@ export function track(eventType, payload = {}) {
 
     const config = getSupabaseConfig();
     if (config) {
-      import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')
-        .then(({ createClient }) => {
-          const supabase = createClient(config.url, config.anonKey);
-          return supabase.from(TABLE_NAME).insert(row);
-        })
+      import('./supabase-auth-cookies.js')
+        .then(({ getSupabase }) => getSupabase())
+        .then((supabase) => supabase.from(TABLE_NAME).insert(row))
         .then(({ error }) => {
           if (error) throw error;
         })
