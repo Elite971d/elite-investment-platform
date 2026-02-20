@@ -993,6 +993,8 @@ function escapeHtmlAttr(s) {
   });
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
+    document.cookie = 'esn_hardcode_admin=;path=/;domain=.elitesolutionsnetwork.com;max-age=0';
+    document.cookie = 'esn_hardcode_admin=;path=/;max-age=0';
     await supabase.auth.signOut();
     window.location.href = '/login.html';
   });

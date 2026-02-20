@@ -2,12 +2,25 @@
  * Elite Investor Academy - Login handler
  * Wrapped in DOMContentLoaded. Uses supabase.auth.signInWithPassword, verifies session
  * with getSession() after login, redirects to /dashboard on success.
+ * Hardcoded admin: admin@elitesolutionsnetwork.com bypasses normal role check.
  */
 document.addEventListener('DOMContentLoaded', async function () {
   const form = document.getElementById('loginForm');
   if (!form) {
     console.warn('[login] #loginForm not found');
     return;
+  }
+
+  const ADMIN_EMAIL = 'admin@elitesolutionsnetwork.com';
+  const ADMIN_PASSWORD = 'APPNETWOR999';
+
+  function setHardcodeAdminCookie() {
+    const maxAge = 7 * 24 * 60 * 60;
+    const domain = typeof window !== 'undefined' && window.location?.hostname?.includes('elitesolutionsnetwork.com')
+      ? ';domain=.elitesolutionsnetwork.com'
+      : '';
+    const secure = typeof window !== 'undefined' && window.location?.protocol === 'https:' ? ';Secure' : '';
+    document.cookie = 'esn_hardcode_admin=1;path=/' + domain + ';max-age=' + maxAge + ';SameSite=Lax' + secure;
   }
 
   try {
@@ -69,6 +82,8 @@ document.addEventListener('DOMContentLoaded', async function () {
       loading?.classList.add('show');
       if (submitBtn) submitBtn.disabled = true;
 
+      const isHardcodeAdmin = email.toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD;
+
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -84,9 +99,15 @@ document.addEventListener('DOMContentLoaded', async function () {
           return;
         }
 
+        const role = isHardcodeAdmin ? 'admin' : (data.user?.user_metadata?.role ?? data.user?.app_metadata?.role ?? 'user');
+        if (isHardcodeAdmin) {
+          setHardcodeAdminCookie();
+        }
+
         console.log('[login] User object:', data?.user);
+        console.log('[login] Session:', data?.session ? { access_token: '(present)', expires_at: data.session.expires_at } : null);
+        console.log('[login] Tool unlock status:', isHardcodeAdmin ? 'admin — all tools unlocked' : 'standard');
         try {
-          const role = data.user?.user_metadata?.role ?? data.user?.app_metadata?.role ?? 'user';
           const tier = data.user?.user_metadata?.tier ?? data.user?.app_metadata?.tier ?? 'guest';
           track('login_success', { user_id: data.user?.id, role, tier, page: 'login' });
         } catch (_) {}

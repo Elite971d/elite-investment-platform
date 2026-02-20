@@ -545,6 +545,10 @@ function initTabs() {
       if (mpRole?.role === 'admin') role = 'admin';
     } catch (_) {}
   }
+  // Hardcoded admin: admin@elitesolutionsnetwork.com + esn_hardcode_admin cookie
+  if (role !== 'admin' && user?.email?.toLowerCase() === 'admin@elitesolutionsnetwork.com' && /esn_hardcode_admin=1(?:\s|;|$)/.test(document.cookie || '')) {
+    role = 'admin';
+  }
 
   // Auth debug: user object and role for session/tool verification
   if (typeof console !== 'undefined' && console.log) {
@@ -646,6 +650,8 @@ function initTabs() {
   // Logout handler
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     try { track('logout', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard'); } catch (_) {}
+    document.cookie = 'esn_hardcode_admin=;path=/;domain=.elitesolutionsnetwork.com;max-age=0';
+    document.cookie = 'esn_hardcode_admin=;path=/;max-age=0';
     await supabase.auth.signOut();
     window.location.href = '/login.html';
   });
