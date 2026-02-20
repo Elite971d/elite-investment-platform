@@ -679,7 +679,7 @@ function initTabs() {
   
   // Logout handler
   document.getElementById('logoutBtn').addEventListener('click', async () => {
-    try { track('logout', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard'); } catch (_) {}
+    try { track('logout', { user_id: user.id, role, tier: effectiveTier, page: 'dashboard' }); } catch (_) {}
     document.cookie = 'esn_hardcode_admin=;path=/;domain=.elitesolutionsnetwork.com;max-age=0';
     document.cookie = 'esn_hardcode_admin=;path=/;max-age=0';
     document.cookie = 'esn_admin_override=;path=/;max-age=0';

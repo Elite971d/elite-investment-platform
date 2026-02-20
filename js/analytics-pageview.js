@@ -9,8 +9,8 @@
     const script = typeof document !== 'undefined' && document.currentScript;
     const page = (script && script.getAttribute && script.getAttribute('data-page')) ||
       (typeof window !== 'undefined' && window.location && window.location.pathname
-        ? window.location.pathname.replace(/^\//, '').replace(/\.html$/, '') || 'index')
-      || 'unknown';
+        ? (window.location.pathname.replace(/^\//, '').replace(/\.html$/, '') || 'index')
+        : 'unknown');
     import('./analytics.js').then(function (m) {
       m.track('page_view', { page: page });
     }).catch(function () {});
