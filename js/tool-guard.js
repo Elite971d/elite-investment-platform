@@ -12,11 +12,7 @@
     var script = document.currentScript;
     var tool = (script && script.getAttribute('data-tool')) || window.ESN_TOOL_ID;
     if (tool) {
-      var isDealCheck = window.location.hostname.indexOf('dealcheck') !== -1;
-      var target = isDealCheck
-        ? 'https://invest.elitesolutionsnetwork.com/protected.html?tool=' + encodeURIComponent(tool)
-        : window.location.pathname.replace(/\/[^/]+$/, '') + '/protected.html?tool=' + encodeURIComponent(tool);
-      if (!target.startsWith('http')) target = window.location.origin + (target.startsWith('/') ? '' : '/') + target;
+      var target = '/protected.html?tool=' + encodeURIComponent(tool);
       window.location.replace(target);
     }
   }

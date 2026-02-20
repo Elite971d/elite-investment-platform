@@ -13,8 +13,8 @@
 //   elite:   serious + Commercial Analyzer
 //   admin:   everything (role override)
 
-/** DealCheck subdomain base URL — tools are served from here; session shared via cookies */
-export const DEALCHECK_TOOLS_BASE = 'https://dealcheck.elitesolutionsnetwork.com';
+/** Base URL for protected tool wrapper — empty = same deployment (relative paths) */
+export const DEALCHECK_TOOLS_BASE = '';
 
 /** Member tools — calculators and academy. Used by dashboard and pricing only. */
 export const MEMBER_TOOLS = [
