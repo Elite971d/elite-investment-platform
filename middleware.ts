@@ -67,7 +67,8 @@ function securityHeaders(): Record<string, string> {
 
 export async function middleware(req: NextRequest) {
   try {
-    const pathname = req.nextUrl.pathname ?? '';
+    const pathname = String((req.nextUrl && req.nextUrl.pathname) || '');
+    const baseUrl = String(req.url || '');
 
     // 1. BYPASS: Public paths never go through auth gating
     if (isPublicPath(pathname)) {
@@ -88,25 +89,35 @@ export async function middleware(req: NextRequest) {
 
     // 3. Check session - no Supabase client, cookie-only. Admin override bypasses session.
     const hasSession = hasSupabaseSession(req);
-    const hasAdminOverride = (() => {
-      try {
-        const cookieHeader = req.headers.get('cookie');
-        if (!cookieHeader) return false;
-        return /esn_admin_override=1(?:\s|;|$)/.test(cookieHeader);
-      } catch { return false; }
-    })();
+    let hasAdminOverride = false;
+    try {
+      const cookieHeader = req.headers.get('cookie');
+      if (cookieHeader && typeof cookieHeader === 'string') {
+        hasAdminOverride = cookieHeader.indexOf('esn_admin_override=1') !== -1;
+      }
+    } catch (_) {
+      // ignore
+    }
     if (!hasSession && !hasAdminOverride) {
-      return NextResponse.redirect(new URL('/login.html', req.url));
+      try {
+        const loginUrl = baseUrl ? new URL('/login.html', baseUrl).href : 'https://invest.elitesolutionsnetwork.com/login.html';
+        return NextResponse.redirect(loginUrl);
+      } catch (_) {
+        return NextResponse.next();
+      }
     }
 
     const response = NextResponse.next();
-    Object.entries(securityHeaders()).forEach(([key, value]) => {
-      response.headers.set(key, value);
-    });
+    try {
+      Object.entries(securityHeaders()).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+    } catch (_) {
+      // ignore
+    }
     return response;
   } catch (error) {
-    console.error('Middleware failure:', error);
-    return NextResponse.next(); // FAIL OPEN
+    return NextResponse.next(); // FAIL OPEN - do not rethrow
   }
 }
 
