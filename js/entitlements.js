@@ -51,6 +51,71 @@ function tierIncludesTool(tier, toolKey) {
 }
 
 /**
+ * Resolve user tier from entitlements, profile, or default.
+ * NEVER throws. Handles undefined/null safely. Does not assume entitlements exist.
+ * Order: 1) active tier entitlement, 2) legacy profile.tier, 3) default 'guest'
+ *
+ * @param {object} user - Auth user (optional, for future use)
+ * @param {object} profile - Profile with tier/role (profiles or member_profiles)
+ * @param {Array} entitlements - Entitlements rows (type, product_key, status)
+ * @returns {string} Resolved tier (never undefined)
+ */
+export function resolveUserTier(user, profile, entitlements) {
+  try {
+    // 1) Check active tier entitlement FIRST
+    const arr = Array.isArray(entitlements) ? entitlements : [];
+    const activeTier = arr.find(function (e) {
+      return e && (e.type === 'tier' || (e.product_key && String(e.product_key).startsWith('tier_'))) && (e.status === 'active');
+    });
+    if (activeTier && activeTier.product_key) {
+      const t = String(activeTier.product_key).replace(/^tier_/, '');
+      if (t) return t;
+    }
+
+    // 2) FALLBACK to legacy profile tier
+    if (profile && profile.tier != null && profile.tier !== '') {
+      return String(profile.tier);
+    }
+
+    // 3) Default safe fallback
+    return 'guest';
+  } catch (_) {
+    return 'guest';
+  }
+}
+
+/**
+ * Sync tool access check when profile + entitlements are pre-fetched.
+ * Null-safe. Does not assume entitlements array exists.
+ *
+ * @param {object} user - Auth user
+ * @param {object} profile - Profile with tier/role
+ * @param {Array} entitlements - Entitlements rows
+ * @param {string} toolKey - Tool ID (offer, brrrr, dealcheck, etc.)
+ * @returns {boolean}
+ */
+export function hasToolAccessSync(user, profile, entitlements, toolKey) {
+  try {
+    if (!toolKey) return false;
+    // Admin bypass: profile.role or user metadata
+    const role = (profile && profile.role) || (user && (user.user_metadata?.role || user.app_metadata?.role));
+    if (role === 'admin') return true;
+
+    const tier = resolveUserTier(user, profile, entitlements);
+    if (tier === 'admin') return true;
+    if (tierIncludesTool(tier, toolKey)) return true;
+
+    const productKey = TOOL_PRODUCT_KEYS[toolKey] || ('tool_' + toolKey);
+    const arr = Array.isArray(entitlements) ? entitlements : [];
+    return arr.some(function (e) {
+      return e && (e.type === 'tool' || (e.product_key && String(e.product_key).startsWith('tool_'))) && e.product_key === productKey && e.status === 'active';
+    });
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
  * Check if user has active entitlement for product_key.
  * @param {string} userId - User UUID
  * @param {string} productKey - e.g. 'tool_offer', 'feature_whitelabel'
@@ -76,19 +141,37 @@ export async function userHasActiveEntitlement(userId, productKey, supabase) {
 
 /**
  * Check if user has tool access (tier OR add-on subscription).
- * @param {object} user - { id, tier } (tier from effective tier)
- * @param {string} toolKey - Tool ID: offer, brrrr, dealcheck, etc.
- * @param {object} [supabase] - Optional Supabase client (for calculator-gate when getSupabase unavailable)
+ * Null-safe. Supports: hasToolAccess(user, profile, entitlements, toolKey) or hasToolAccess(user, toolKey, supabase).
+ *
+ * @param {object} user - Auth user or { id, tier }
+ * @param {object|string} profileOrToolKey - Profile (when 4 args) or toolKey (when 3 args)
+ * @param {Array|object} entitlementsOrSupabase - Entitlements rows (when 4 args) or Supabase client (when 3 args)
+ * @param {string} [toolKey] - Tool ID when 4 args
  * @returns {Promise<boolean>}
  */
-export async function hasToolAccess(user, toolKey, supabase) {
-  if (!user) return false;
-  const tier = user.tier ?? user.effectiveTier ?? 'guest';
-  if (tier === 'admin') return true;
-  if (tierIncludesTool(tier, toolKey)) return true;
-  const productKey = TOOL_PRODUCT_KEYS[toolKey] || `tool_${toolKey}`;
-  const client = supabase || await getSupabase();
-  return userHasActiveEntitlement(user.id, productKey, client);
+export async function hasToolAccess(user, profileOrToolKey, entitlementsOrSupabase, toolKey) {
+  try {
+    if (!user) return false;
+
+    // 4-arg form: hasToolAccess(user, profile, entitlements, toolKey) - sync path
+    if (typeof profileOrToolKey === 'object' && Array.isArray(entitlementsOrSupabase) && typeof toolKey === 'string') {
+      return hasToolAccessSync(user, profileOrToolKey, entitlementsOrSupabase, toolKey);
+    }
+
+    // 3-arg form: hasToolAccess(user, toolKey, supabase) - async path
+    const key = typeof profileOrToolKey === 'string' ? profileOrToolKey : toolKey;
+    if (!key) return false;
+
+    const tier = (user.tier ?? user.effectiveTier ?? 'guest') || 'guest';
+    if (tier === 'admin') return true;
+    if (tierIncludesTool(tier, key)) return true;
+
+    const productKey = TOOL_PRODUCT_KEYS[key] || ('tool_' + key);
+    const client = entitlementsOrSupabase && typeof entitlementsOrSupabase.from === 'function' ? entitlementsOrSupabase : await getSupabase();
+    return userHasActiveEntitlement(user.id, productKey, client);
+  } catch (_) {
+    return false;
+  }
 }
 
 /**
@@ -116,8 +199,9 @@ export async function hasWhiteLabelAccess(user) {
 export async function resolveEffectiveTier(user, supabase) {
   if (!user) return { effectiveTier: 'guest', resolvedFrom: 'default' };
 
-  const isAdmin = user?.user_metadata?.role === 'admin' || user?.app_metadata?.role === 'admin';
-  if (isAdmin) return { effectiveTier: 'admin', resolvedFrom: 'admin' };
+  // 1) Admin: JWT metadata OR profiles.role OR member_profiles.role (never lock out admins)
+  const isAdminFromMeta = user?.user_metadata?.role === 'admin' || user?.app_metadata?.role === 'admin';
+  if (isAdminFromMeta) return { effectiveTier: 'admin', resolvedFrom: 'admin' };
 
   const now = new Date().toISOString();
 
@@ -132,10 +216,10 @@ export async function resolveEffectiveTier(user, supabase) {
     .maybeSingle();
   if (override?.override_tier) return { effectiveTier: String(override.override_tier), resolvedFrom: 'override' };
 
-  // 3) member_profiles: tier + subscription_status + grace_until
+  // 3) member_profiles: tier + subscription_status + grace_until + role
   const { data: memberProfile, error: mpError } = await supabase
     .from('member_profiles')
-    .select('tier, subscription_status, grace_until')
+    .select('tier, subscription_status, grace_until, role')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -145,6 +229,8 @@ export async function resolveEffectiveTier(user, supabase) {
     return { effectiveTier: 'guest', resolvedFrom: 'error_failsafe' };
   }
 
+  if (memberProfile && memberProfile.role === 'admin') return { effectiveTier: 'admin', resolvedFrom: 'admin_member_profiles' };
+
   let tier = memberProfile?.tier;
   const subStatus = memberProfile?.subscription_status ?? null;
   const graceUntil = memberProfile?.grace_until ?? null;
@@ -152,10 +238,18 @@ export async function resolveEffectiveTier(user, supabase) {
   if (!tier) {
     const { data: legacyProfile } = await supabase
       .from('profiles')
-      .select('tier')
+      .select('tier, role')
       .eq('id', user.id)
       .maybeSingle();
+    if (legacyProfile && legacyProfile.role === 'admin') return { effectiveTier: 'admin', resolvedFrom: 'admin_profiles' };
     tier = legacyProfile?.tier;
+  }
+  // Admin may be in profiles.role even when tier came from member_profiles
+  if (tier && tier !== 'admin') {
+    try {
+      const { data: pRole } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+      if (pRole && pRole.role === 'admin') return { effectiveTier: 'admin', resolvedFrom: 'admin_profiles' };
+    } catch (_) {}
   }
   if (!tier) {
     const metaTier = user?.user_metadata?.tier ?? user?.app_metadata?.tier;
@@ -258,8 +352,6 @@ export async function getUserEntitlements(opts = {}) {
   try {
     const supabase = await getSupabase();
     const user = await getCurrentUser();
-    const role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
-
     if (!user) {
       const perms = Object.keys(TOOL_ACCESS).reduce((acc, id) => ({ ...acc, [id]: false }), {});
       const sources = Object.keys(TOOL_ACCESS).reduce((acc, id) => ({ ...acc, [id]: null }), {});
@@ -273,6 +365,16 @@ export async function getUserEntitlements(opts = {}) {
         renewal_date: undefined
       };
     }
+
+    let role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
+    try {
+      const { data: p } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+      if (p?.role === 'admin') role = 'admin';
+    } catch (_) {}
+    try {
+      const { data: mp } = await supabase.from('member_profiles').select('role').eq('id', user.id).maybeSingle();
+      if (mp?.role === 'admin') role = 'admin';
+    } catch (_) {}
 
     const { effectiveTier, resolvedFrom } = await getEffectiveTierCached(user, opts);
     const tier = effectiveTier === undefined || effectiveTier === null || effectiveTier === '' ? 'guest' : String(effectiveTier);

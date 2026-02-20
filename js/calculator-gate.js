@@ -177,17 +177,21 @@ export async function runCalculatorGate(toolId, options = {}) {
     return { allowed: false };
   }
 
-  // Resolve role and tier from Supabase auth metadata (and member_profiles for add-on support)
+  // Resolve role and tier: profile.role (admin bypass) > JWT metadata > member_profiles > profiles > metadata
   const user = session.user;
-  const role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
-  let tier = (role === 'admin' ? 'admin' : null) || user?.user_metadata?.tier ?? user?.app_metadata?.tier ?? 'guest';
-  if (tier !== 'admin') {
-    try {
-      const { data: mp } = await supabase.from('member_profiles').select('tier').eq('id', user.id).maybeSingle();
-      if (mp?.tier) tier = mp.tier;
-    } catch (_) {}
-    tier = tier || 'guest';
-  }
+  let role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
+  let tier = (role === 'admin' ? 'admin' : null) || user?.user_metadata?.tier ?? user?.app_metadata?.tier ?? null;
+  try {
+    const { data: mp } = await supabase.from('member_profiles').select('role, tier').eq('id', user.id).maybeSingle();
+    if (mp?.role === 'admin') role = 'admin';
+    if (mp?.tier) tier = mp.tier;
+  } catch (_) {}
+  try {
+    const { data: p } = await supabase.from('profiles').select('role, tier').eq('id', user.id).maybeSingle();
+    if (p?.role === 'admin') { role = 'admin'; tier = 'admin'; }
+    else if (p?.tier && !tier) tier = p.tier;
+  } catch (_) {}
+  tier = tier || 'guest';
 
   let hasAccess = canAccessTool(tier, toolId);
   if (!hasAccess) {

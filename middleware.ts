@@ -87,27 +87,33 @@ function securityHeaders(): Record<string, string> {
 }
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  try {
+    const { pathname } = request.nextUrl;
 
-  // Only run protection logic on protected paths
-  if (!isProtectedPath(pathname)) {
+    // Only run protection logic on protected paths
+    if (!isProtectedPath(pathname)) {
+      return NextResponse.next();
+    }
+
+    const hasSession = hasSupabaseSession(request);
+
+    if (!hasSession) {
+      const loginUrl = new URL('/login.html', request.url);
+      loginUrl.searchParams.set('redirect', pathname + request.nextUrl.search);
+      return NextResponse.redirect(loginUrl, 302);
+    }
+
+    // Authenticated: pass through and add security headers to response
+    // Admin bypass: tier/role checks happen at page/API level; admins never blocked here
+    const response = NextResponse.next();
+    Object.entries(securityHeaders()).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    return response;
+  } catch (err) {
+    console.error('Middleware failure:', err);
     return NextResponse.next();
   }
-
-  const hasSession = hasSupabaseSession(request);
-
-  if (!hasSession) {
-    const loginUrl = new URL('/login.html', request.url);
-    loginUrl.searchParams.set('redirect', pathname + request.nextUrl.search);
-    return NextResponse.redirect(loginUrl, 302);
-  }
-
-  // Authenticated: pass through and add security headers to response
-  const response = NextResponse.next();
-  Object.entries(securityHeaders()).forEach(([key, value]) => {
-    response.headers.set(key, value);
-  });
-  return response;
 }
 
 export const config = {

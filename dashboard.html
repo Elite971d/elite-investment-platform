@@ -529,7 +529,9 @@ function initTabs() {
   document.getElementById('userEmail').textContent = user.email;
   document.getElementById('accountEmail').textContent = user.email;
   
-  const role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
+  const { data: profile } = await getUserProfile(user.id);
+  let role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
+  if (profile?.role === 'admin') role = 'admin';
   document.getElementById('accountRole').textContent = role === 'admin' ? 'Admin' : role;
 
   if (role === 'admin') {
@@ -561,8 +563,6 @@ function initTabs() {
     document.getElementById('resolvedFromValue').textContent = resolvedFrom;
   }
 
-  const { data: profile } = await getUserProfile(user.id);
-  
   if (profile?.created_at) {
     const date = new Date(profile.created_at);
     document.getElementById('memberSince').textContent = date.toLocaleDateString();
