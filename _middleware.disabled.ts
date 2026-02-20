@@ -4,6 +4,9 @@
  * Middleware logic disabled to resolve MIDDLEWARE_INVOCATION_FAILED (500).
  * All requests pass through. Re-enable protection after stabilizing auth.
  *
+ * Renamed from middleware.ts so Vercel does not execute it.
+ * To re-enable: rename this file back to middleware.ts
+ *
  * - No Supabase client
  * - No browser-only APIs (window, localStorage)
  */
