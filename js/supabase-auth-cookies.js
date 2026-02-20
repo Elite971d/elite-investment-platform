@@ -17,9 +17,18 @@
 const COOKIE_DOMAIN = '.elitesolutionsnetwork.com';
 const COOKIE_MAX_AGE_DAYS = 7;
 
+function getCookieDomain() {
+  if (typeof window === 'undefined' || !window.location?.hostname) return COOKIE_DOMAIN;
+  const h = window.location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') return '';
+  if (h.includes('elitesolutionsnetwork.com')) return COOKIE_DOMAIN;
+  return '';
+}
+
 /**
  * Cookie-based storage adapter for Supabase auth.
  * Must be used on BOTH invest and dealcheck so they share the same session.
+ * On localhost, omits domain so cookies work; on production uses .elitesolutionsnetwork.com.
  */
 export function getCookieStorage() {
   return {
@@ -32,13 +41,16 @@ export function getCookieStorage() {
     setItem(key, value) {
       if (typeof document === 'undefined') return;
       const maxAge = COOKIE_MAX_AGE_DAYS * 24 * 60 * 60;
-      let cookie = key + '=' + encodeURIComponent(value) + ';path=/;domain=' + COOKIE_DOMAIN + ';max-age=' + maxAge + ';SameSite=Lax';
+      const domain = getCookieDomain();
+      let cookie = key + '=' + encodeURIComponent(value) + ';path=/;max-age=' + maxAge + ';SameSite=Lax';
+      if (domain) cookie += ';domain=' + domain;
       if (typeof window !== 'undefined' && window.location?.protocol === 'https:') cookie += ';Secure';
       document.cookie = cookie;
     },
     removeItem(key) {
       if (typeof document === 'undefined') return;
-      document.cookie = key + '=;path=/;domain=' + COOKIE_DOMAIN + ';max-age=0';
+      const domain = getCookieDomain();
+      document.cookie = key + '=;path=/;max-age=0' + (domain ? ';domain=' + domain : '');
     }
   };
 }
