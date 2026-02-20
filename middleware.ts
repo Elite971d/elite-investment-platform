@@ -1,32 +1,36 @@
 /**
  * Vercel Edge Middleware - Server-side HTML protection
  *
- * Runs BEFORE static file delivery. Protects:
- * - /dealcheck/*
- * - /tools/* (calculator tools: brrrr.html, commercial.html, etc.)
- * - /protected.html (root)
- * - Root-level .html files except login, index, reset, magic-link, reset-password
+ * STABILIZED: Public paths bypass immediately. Only protects:
+ * - /dashboard, /dashboard.html
+ * - /tools/*
+ * - /member/*
  *
- * Does NOT interfere with: /api/*, /_next/*, webhooks, cron, admin API routes.
+ * No Supabase client, no DB calls, no entitlement checks in middleware.
+ * Protected pages handle tier logic.
  */
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getToolKeyFromPath } from './lib/access-utils';
 
-/** Paths that are always allowed without authentication */
+/** Paths that bypass ALL middleware logic - checked FIRST before any other code */
 const PUBLIC_PATHS = [
   '/',
-  '/index.html',
   '/login.html',
-  '/reset.html',
-  '/reset-password.html',
-  '/magic-link.html',
-  '/favicon.ico',
+  '/signup.html',
+  '/pricing.html',
+  '/about.html',
 ];
 
-/** Path prefixes that bypass protection (API, assets, etc.) */
-const BYPASS_PREFIXES = ['/api/', '/_next/', '/favicon.ico'];
+function isPublicPath(pathname: string): boolean {
+  if (!pathname) return true;
+  return PUBLIC_PATHS.some((path) => {
+    if (path === '/') {
+      return pathname === '/' || pathname === '' || pathname === '/index.html';
+    }
+    return pathname === path || pathname.startsWith(path + '?') || pathname.startsWith(path + '/');
+  });
+}
 
 /**
  * Check if request has a Supabase session cookie.
@@ -48,28 +52,6 @@ function hasSupabaseSession(request: NextRequest): boolean {
   }
 }
 
-/**
- * Check if path should be protected
- */
-function isProtectedPath(pathname: string): boolean {
-  try {
-    const path = pathname.replace(/\/$/, '') || '/';
-    for (const prefix of BYPASS_PREFIXES) {
-      if (path.startsWith(prefix) || path === prefix.replace(/\/$/, '')) return false;
-    }
-    if (PUBLIC_PATHS.includes(path)) return false;
-    if (PUBLIC_PATHS.includes(path + '/')) return false;
-    if (path.startsWith('/dealcheck')) return true;
-    if (path.startsWith('/tools/')) return true;
-    if (path === '/protected.html') return true;
-    if (/^\/[^/]+\.html$/.test(path)) return true;
-    if (/\.html$/.test(path)) return true;
-    return false;
-  } catch {
-    return false;
-  }
-}
-
 function securityHeaders(): Record<string, string> {
   return {
     'X-Frame-Options': 'SAMEORIGIN',
@@ -78,39 +60,31 @@ function securityHeaders(): Record<string, string> {
   };
 }
 
-export async function middleware(request: NextRequest) {
+export async function middleware(req: NextRequest) {
   try {
-    const { pathname } = request.nextUrl;
+    const pathname = req.nextUrl.pathname ?? '';
 
-    if (!isProtectedPath(pathname)) {
+    // 1. BYPASS: Public paths never go through auth gating
+    if (isPublicPath(pathname)) {
       return NextResponse.next();
     }
 
-    const hasSession = hasSupabaseSession(request);
-    if (!hasSession) {
-      const loginUrl = new URL('/login.html', request.url);
-      loginUrl.searchParams.set('redirect', pathname + request.nextUrl.search);
-      return NextResponse.redirect(loginUrl, 302);
+    // 2. Protect only /dashboard, /tools, /member (matcher handles this, but double-check)
+    const isProtected =
+      pathname === '/dashboard' ||
+      pathname === '/dashboard.html' ||
+      pathname.startsWith('/dashboard/') ||
+      pathname.startsWith('/tools/') ||
+      pathname.startsWith('/member/');
+
+    if (!isProtected) {
+      return NextResponse.next();
     }
 
-    if (pathname.includes('/tools/')) {
-      const toolKey = getToolKeyFromPath(pathname);
-      if (toolKey) {
-        try {
-          const origin = request.nextUrl.origin;
-          const verifyUrl = `${origin}/api/internal/verify-tool-access?path=${encodeURIComponent(pathname)}`;
-          const res = await fetch(verifyUrl, {
-            headers: { cookie: request.headers.get('cookie') || '' },
-          });
-          const data = (await res.json().catch(() => ({}))) as { ok?: boolean };
-          if (data?.ok === false) {
-            const pricingUrl = new URL('/index.html', request.url);
-            return NextResponse.redirect(pricingUrl, 302);
-          }
-        } catch (err) {
-          console.error('[middleware] verify-tool-access error:', err);
-        }
-      }
+    // 3. Check session - no Supabase client, cookie-only
+    const hasSession = hasSupabaseSession(req);
+    if (!hasSession) {
+      return NextResponse.redirect(new URL('/login.html', req.url));
     }
 
     const response = NextResponse.next();
@@ -118,17 +92,17 @@ export async function middleware(request: NextRequest) {
       response.headers.set(key, value);
     });
     return response;
-  } catch (err) {
-    console.error('[middleware] failure:', err);
-    return NextResponse.next();
+  } catch (error) {
+    console.error('Middleware failure:', error);
+    return NextResponse.next(); // FAIL OPEN
   }
 }
 
 export const config = {
   matcher: [
-    '/dealcheck/:path*',
+    '/dashboard/:path*',
+    '/dashboard.html',
     '/tools/:path*',
-    '/((?!api|_next|favicon\\.ico)[^/]*\\.html)',
-    '/protected\\.html',
+    '/member/:path*',
   ],
 };
