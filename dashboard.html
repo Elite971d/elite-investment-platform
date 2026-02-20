@@ -546,10 +546,9 @@ function initTabs() {
     } catch (_) {}
   }
 
-  // TEMP: Auth debug - remove after production validation
+  // Auth debug: user object and role for session/tool verification
   if (typeof console !== 'undefined' && console.log) {
-    console.log('[ESN-Auth] Auth User:', user?.id, user?.email);
-    console.log('[ESN-Auth] Role:', role);
+    console.log('[dashboard] User object:', { id: user?.id, email: user?.email, role });
   }
 
   // Admin: bypass tier resolution — show "Admin / Full Access" and all tools immediately
@@ -630,7 +629,10 @@ function initTabs() {
   let userEntitlements = { permissions: {}, toolAccessSource: {} };
   try {
     userEntitlements = await getUserEntitlements({ revalidate: false });
-    console.log('[dashboard] Entitlements:', userEntitlements);
+    if (typeof console !== 'undefined' && console.log) {
+      console.log('[dashboard] Entitlements:', userEntitlements);
+      console.log('[dashboard] Tool badges: permissions=', userEntitlements?.permissions, 'toolAccessSource=', userEntitlements?.toolAccessSource);
+    }
   } catch (e) {}
   renderTools(effectiveTier, entitlements, expired, userEntitlements);
 

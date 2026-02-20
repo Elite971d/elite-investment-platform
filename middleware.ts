@@ -1,13 +1,16 @@
 /**
  * Vercel Edge Middleware - Server-side HTML protection
  *
- * STABILIZED: Public paths bypass immediately. Only protects:
- * - /dashboard, /dashboard.html
- * - /tools/*
- * - /member/*
+ * Session check: Reads Supabase session cookie after login completes.
+ * - No session (guest) → redirect to /login.html
+ * - Has session (user or admin) → allow through
  *
- * No Supabase client, no DB calls, no entitlement checks in middleware.
- * Protected pages handle tier logic.
+ * Role mapping (admin, user, guest) and tool unlocking are client-side:
+ * - Admin: dashboard/protected pages unlock all tools via role
+ * - Guest: no session, never overrides admin permissions
+ *
+ * Protects: /dashboard, /dashboard.html, /tools/*, /member/*
+ * No Supabase client, no DB calls. Protected pages handle tier logic.
  */
 
 import { NextResponse } from 'next/server';
@@ -33,7 +36,8 @@ function isPublicPath(pathname: string): boolean {
 }
 
 /**
- * Check if request has a Supabase session cookie.
+ * Check if request has a Supabase session cookie (set after login).
+ * Matches: sb-access-token, sb-<project>-auth-token, sb-<project>-refresh-token
  */
 function hasSupabaseSession(request: NextRequest): boolean {
   try {
@@ -45,6 +49,7 @@ function hasSupabaseSession(request: NextRequest): boolean {
       if (!name) continue;
       if (name === 'sb-access-token') return true;
       if (name.startsWith('sb-') && name.includes('-auth-token')) return true;
+      if (name.startsWith('sb-') && name.includes('-refresh-token')) return true;
     }
     return false;
   } catch {
