@@ -66,8 +66,24 @@ function securityHeaders(): Record<string, string> {
 }
 
 export async function middleware(req: NextRequest) {
+  if (!req) return NextResponse.next();
   try {
-    const pathname = String((req.nextUrl && req.nextUrl.pathname) || '');
+    let pathname = '';
+    try {
+      if (req.nextUrl?.pathname != null) {
+        pathname = String(req.nextUrl.pathname);
+      }
+    } catch (_) {
+      // nextUrl may be missing in some Edge contexts
+    }
+    if (!pathname && req.url) {
+      try {
+        const u = new URL(req.url);
+        pathname = u.pathname || '';
+      } catch (_) {
+        pathname = '';
+      }
+    }
     const baseUrl = String(req.url || '');
 
     // 1. BYPASS: Public paths never go through auth gating
@@ -109,15 +125,18 @@ export async function middleware(req: NextRequest) {
 
     const response = NextResponse.next();
     try {
-      Object.entries(securityHeaders()).forEach(([key, value]) => {
-        response.headers.set(key, value);
-      });
+      const headers = securityHeaders();
+      if (headers && typeof response.headers.set === 'function') {
+        for (const [key, value] of Object.entries(headers)) {
+          if (key && value != null) response.headers.set(key, String(value));
+        }
+      }
     } catch (_) {
       // ignore
     }
     return response;
-  } catch (error) {
-    return NextResponse.next(); // FAIL OPEN - do not rethrow
+  } catch (_) {
+    return NextResponse.next();
   }
 }
 

@@ -4,9 +4,8 @@
   "description": "Elite Investor Academy - static frontend + Vercel serverless APIs",
   "private": true,
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
-  },
-  "devDependencies": {
+    "@supabase/supabase-js": "^2.39.0",
     "next": "^14.0.0"
-  }
+  },
+  "devDependencies": {}
 }
