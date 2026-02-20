@@ -242,7 +242,10 @@ input:focus {
 <script type="module">
 document.addEventListener("DOMContentLoaded", async function () {
   const form = document.getElementById("loginForm");
-  if (!form) return;
+  if (!form) {
+    console.warn("[login] #loginForm not found");
+    return;
+  }
 
   // Supabase with cross-subdomain cookie storage (invest + dealcheck share session)
   const { createSupabaseAuthClient } = await import('./js/supabase-auth-cookies.js');
@@ -302,7 +305,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
 
       if (error) {
-        console.error("Login error:", error);
+        console.error("[login] Login error:", error?.message || error);
         errorMsg.textContent = error.message;
         errorMsg.classList.add("show");
         loading.classList.remove("show");
@@ -310,24 +313,44 @@ document.addEventListener("DOMContentLoaded", async function () {
         return;
       }
 
-      console.log("Login successful:", data);
+      console.log("[login] User object:", data?.user);
       try {
         const role = data.user?.user_metadata?.role ?? data.user?.app_metadata?.role ?? 'user';
         const tier = data.user?.user_metadata?.tier ?? data.user?.app_metadata?.tier ?? 'guest';
         track('login_success', { user_id: data.user?.id, role, tier, page: 'login' });
       } catch (_) {}
 
+      // Session verification: ensure getSession returns valid session before redirect
+      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) {
+        console.error("[login] Session verification failed:", sessionErr?.message || sessionErr);
+        errorMsg.textContent = "Session could not be verified. Please try again.";
+        errorMsg.classList.add("show");
+        loading.classList.remove("show");
+        submitBtn.disabled = false;
+        return;
+      }
+      if (!session) {
+        console.error("[login] Login succeeded but getSession() returned null — session may not persist.");
+        errorMsg.textContent = "Session could not be established. Please try again or clear cookies.";
+        errorMsg.classList.add("show");
+        loading.classList.remove("show");
+        submitBtn.disabled = false;
+        return;
+      }
+
       successMsg.textContent = "Login successful! Redirecting...";
       successMsg.classList.add("show");
       const allowedPaths = ['/dashboard.html', '/', '/index.html', '/success.html', '/protected.html'];
       const allowedOrigins = ['https://invest.elitesolutionsnetwork.com', 'https://dealcheck.elitesolutionsnetwork.com', 'http://localhost:3000', 'http://localhost:5173'];
+      const isAllowedOrigin = (o) => allowedOrigins.includes(o) || (o.startsWith('https://') && o.endsWith('.vercel.app'));
       const redirectParam = new URLSearchParams(window.location.search).get('redirect');
       let target = '/dashboard.html';
       if (redirectParam) {
         try {
           const url = redirectParam.startsWith('http') ? new URL(redirectParam) : new URL(redirectParam, window.location.origin);
-          const path = url.pathname;
-          if (allowedOrigins.includes(url.origin) && allowedPaths.includes(path)) target = url.href;
+          const path = url.pathname || '/';
+          if (isAllowedOrigin(url.origin) && allowedPaths.includes(path)) target = url.href;
           else if (redirectParam.startsWith('/') && allowedPaths.includes(path)) target = redirectParam;
         } catch (_) {}
       }

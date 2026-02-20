@@ -53,7 +53,7 @@ export function getCookieStorage() {
  */
 export async function createSupabaseAuthClient(url, anonKey) {
   const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-  return createClient(url, anonKey, {
+  const client = createClient(url, anonKey, {
     auth: {
       storage: getCookieStorage(),
       persistSession: true,
@@ -61,4 +61,8 @@ export async function createSupabaseAuthClient(url, anonKey) {
       detectSessionInUrl: true
     }
   });
+  if (typeof console !== 'undefined' && console.log) {
+    console.log('[supabase-auth] Client created (persistSession: true, autoRefreshToken: true, detectSessionInUrl: true)');
+  }
+  return client;
 }

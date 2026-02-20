@@ -630,6 +630,7 @@ function initTabs() {
   let userEntitlements = { permissions: {}, toolAccessSource: {} };
   try {
     userEntitlements = await getUserEntitlements({ revalidate: false });
+    console.log('[dashboard] Entitlements:', userEntitlements);
   } catch (e) {}
   renderTools(effectiveTier, entitlements, expired, userEntitlements);
 

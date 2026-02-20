@@ -271,7 +271,16 @@ function prettyTier(tier) {
     }
     
     const user = session.user;
-    const role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
+    // Role: never override admin; check profiles + member_profiles (Supabase source of truth)
+    let role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
+    try {
+      const { data: p } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+      if (p?.role === 'admin') role = 'admin';
+    } catch (_) {}
+    try {
+      const { data: mp } = await supabase.from('member_profiles').select('role').eq('id', user.id).maybeSingle();
+      if (mp?.role === 'admin') role = 'admin';
+    } catch (_) {}
     let userTier = role === 'admin' ? 'admin' : null;
     if (userTier !== 'admin') {
       const now = new Date().toISOString();
