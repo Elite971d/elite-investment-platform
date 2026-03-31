@@ -395,14 +395,46 @@ function canAccess(userTier, minTier) {
   return userRank >= requiredRank;
 }
 
+function hasToolAccess(tool) {
+  const map = window.currentToolAccessMap || {};
+  return !!map[tool];
+}
+
 function openTool(tool) {
-  const path = getToolPath(tool) || (tool + '.html');
-  window.location.href = '/tools/' + path;
+  const role = window.currentUserRole || "user";
+  const base = "https://dealcheck.elitesolutionsnetwork.com/tools/";
+  const externalTools = {
+    windows: "https://windows.elitesolutionsnetwork.com",
+    trade: "https://trade.elitesolutionsnetwork.com",
+    materials: "https://materials.elitesolutionsnetwork.com/rehab-expenses"
+  };
+
+  // Admin full access: always route to hosted tool page.
+  if (role === "admin") {
+    const path = getToolPath(tool) || (tool + ".html");
+    window.location.href = base + path;
+    return;
+  }
+
+  if (externalTools[tool]) {
+    window.location.href = externalTools[tool];
+    return;
+  }
+
+  // Non-admin logic: preserve existing access restrictions.
+  if (!hasToolAccess(tool)) {
+    window.location.href = "/coming-soon.html";
+    return;
+  }
+
+  const path = getToolPath(tool) || (tool + ".html");
+  window.location.href = base + path;
 }
 
 function openExternalTool(url) {
   window.location.href = url;
 }
+window.openTool = openTool;
 window.openExternalTool = openExternalTool;
 
 function renderAdminToolsSection() {
@@ -418,9 +450,9 @@ function renderAdminToolsSection() {
     { name: 'Rehab Expenses', url: 'https://materials.elitesolutionsnetwork.com/rehab-expenses' },
     { name: 'Trade Calculator', url: 'https://trade.elitesolutionsnetwork.com' },
     { name: 'Windows Calculator', url: 'https://windows.elitesolutionsnetwork.com' },
-    { name: 'Investor Buy Box', url: 'https://dealcheck.elitesolutionsnetwork.com/tools/investorbuy-box.html' },
-    { name: 'Profit Split', url: 'https://dealcheck.elitesolutionsnetwork.com/tools/profitsplit.html' },
-    { name: 'Rehab Tracker', url: 'https://dealcheck.elitesolutionsnetwork.com/tools/rehabtracker.html' }
+    { name: 'Investor Buy Box', tool: 'investorbuy-box' },
+    { name: 'Profit Split', tool: 'profitsplit' },
+    { name: 'Rehab Tracker', tool: 'rehabtracker' }
   ].filter(function (tool) {
     return !existingToolNames.has(tool.name.toLowerCase());
   });
@@ -429,9 +461,12 @@ function renderAdminToolsSection() {
   adminTools.forEach(function (tool) {
     const card = document.createElement('div');
     card.className = 'card';
+    const onClick = tool.tool
+      ? "openTool('" + tool.tool + "')"
+      : "openExternalTool('" + tool.url + "')";
     card.innerHTML = '<h3>' + tool.name + '</h3>' +
       '<div class="tool-actions">' +
-      '<button class="tool-link" type="button" onclick="openExternalTool(\'' + tool.url + '\')">Open Tool</button>' +
+      '<button class="tool-link" type="button" onclick="' + onClick + '">Open Tool</button>' +
       '</div>';
     adminGrid.appendChild(card);
   });
@@ -445,9 +480,7 @@ function unlockAllTools() {
     if (actions) {
       const toolId = card.dataset.toolId;
       if (toolId) {
-        const path = getToolPath(toolId) || (toolId + '.html');
-        const toolPath = '/tools/' + path;
-        actions.innerHTML = '<a class="tool-link" href="' + toolPath + '" data-tool="' + toolId + '" data-tool-id="' + toolId + '">Open Tool →</a>';
+        actions.innerHTML = '<button class="tool-link" type="button" onclick="openTool(\'' + toolId + '\')">Open Tool</button>';
       }
     }
   });
@@ -533,8 +566,6 @@ function renderTools(userTier, entitlements, expired, userEntitlements) {
   TOOLS.forEach(function (tool) {
     const access = permissions[tool.id] ?? canAccess(safeTier, tool.minTier);
     const source = toolAccessSource[tool.id];
-    const toolPath = tool.path || (tool.id + '.html');
-    const toolHref = access ? ('/tools/' + toolPath) : '#';
     const tierUpgradeUrl = getTierPaymentLink(tool.minTier) || '/index.html#pricing';
     const addonUrl = getToolAddonPaymentLink(tool.id);
     const addon = TOOL_ADDONS[tool.id];
@@ -555,7 +586,7 @@ function renderTools(userTier, entitlements, expired, userEntitlements) {
     
     let actionsHtml;
     if (access) {
-      actionsHtml = '<a class="tool-link" href="' + toolHref + '" data-tool="' + tool.id + '" data-tool-id="' + tool.id + '">Open Tool →</a>';
+      actionsHtml = '<button class="tool-link" type="button" onclick="openTool(\'' + tool.id + '\')">Open Tool</button>';
     } else {
       const subscribeUrl = addonUrl || tierUpgradeUrl;
       const priceText = addonPrice != null ? '$' + addonPrice + '/mo' : '';
@@ -599,6 +630,7 @@ function initTabs() {
   
   const user = session.user;
   const userRole = user?.user_metadata?.role || "user";
+  window.currentUserRole = userRole;
   document.getElementById('userEmail').textContent = user.email;
   document.getElementById('accountEmail').textContent = user.email;
   
@@ -619,6 +651,7 @@ function initTabs() {
   if (role !== 'admin' && user?.email?.toLowerCase() === 'admin@elitesolutionsnetwork.com' && /esn_hardcode_admin=1(?:\s|;|$)/.test(document.cookie || '')) {
     role = 'admin';
   }
+  window.currentUserRole = role;
   document.getElementById('accountRole').textContent = role === 'admin' ? 'Admin' : role;
 
   if (role === 'admin') {
@@ -716,6 +749,7 @@ function initTabs() {
     }
   } catch (e) {}
   renderTools(effectiveTier, entitlements, expired, userEntitlements);
+  window.currentToolAccessMap = (userEntitlements && userEntitlements.permissions) ? userEntitlements.permissions : {};
 
   // Admin always unlocks all calculators (client-side confirmation)
   if (role === 'admin') {
@@ -760,22 +794,15 @@ function initTabs() {
     } catch (_) {}
   });
 
-  // Delegate: on tool link click, prevent default and use openTool for consistent navigation
+  // Delegate fallback for any legacy elements using data-tool attributes.
   document.getElementById('toolsGrid').addEventListener('click', function (e) {
     const btn = e.target.closest('[data-tool], [data-tool-id]');
-    if (btn) {
-      e.preventDefault();
-      const tool = btn.dataset.tool || btn.dataset.toolId;
-      if (tool) {
-        // Admin bypass: skip tier/entitlement checks and any coming-soon redirects
-        if (role === 'admin') {
-          openTool(tool);
-          return;
-        }
-        logToolUsage(user.id, tool).catch(function () {});
-        openTool(tool);
-      }
-    }
+    if (!btn) return;
+    e.preventDefault();
+    const tool = btn.dataset.tool || btn.dataset.toolId;
+    if (!tool) return;
+    logToolUsage(user.id, tool).catch(function () {});
+    openTool(tool);
   });
   } catch (err) {
     console.warn('[dashboard] init failed:', err?.message || err);
