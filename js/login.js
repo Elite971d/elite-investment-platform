@@ -126,7 +126,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (successMsg) successMsg.textContent = 'Login successful! Redirecting...';
         successMsg?.classList.add('show');
 
-        const allowedPaths = ['/dashboard.html', '/', '/index.html', '/success.html', '/protected.html'];
+        const allowedPaths = ['/dashboard.html', '/', '/index.html', '/success.html'];
+        const isAllowedPath = (path) => allowedPaths.includes(path) || path.startsWith('/tools/');
         const allowedOrigins = [
           'https://invest.elitesolutionsnetwork.com',
           'https://dealcheck.elitesolutionsnetwork.com',
@@ -141,8 +142,8 @@ document.addEventListener('DOMContentLoaded', async function () {
           try {
             const url = redirectParam.startsWith('http') ? new URL(redirectParam) : new URL(redirectParam, window.location.origin);
             const path = url.pathname || '/';
-            if (isAllowedOrigin(url.origin) && allowedPaths.includes(path)) target = url.href;
-            else if (redirectParam.startsWith('/') && allowedPaths.includes(path)) target = redirectParam;
+            if (isAllowedOrigin(url.origin) && isAllowedPath(path)) target = url.href;
+            else if (redirectParam.startsWith('/') && isAllowedPath(path)) target = redirectParam;
           } catch (_) {}
         }
         setTimeout(() => {

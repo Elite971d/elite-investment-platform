@@ -11,8 +11,7 @@ const ALLOWED_REDIRECTS = [
   '/dashboard.html',
   '/',
   '/index.html',
-  '/success.html',
-  '/protected.html'
+  '/success.html'
 ];
 
 /**
@@ -26,7 +25,7 @@ function resolveRedirect(fallback = '/dashboard.html') {
     const redirect = params.get('redirect');
     if (!redirect) return fallback;
     const path = new URL(redirect, window.location.origin).pathname;
-    if (ALLOWED_REDIRECTS.includes(path)) {
+    if (ALLOWED_REDIRECTS.includes(path) || path.startsWith('/tools/')) {
       return path;
     }
   } catch (_) {}
