@@ -269,6 +269,7 @@ function prettyTier(tier) {
     const user = session.user;
     // Role: never override admin; check profiles + member_profiles (Supabase source of truth)
     let role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
+    if (user?.email?.toLowerCase() === 'admin@elitesolutionsnetwork.com') role = 'admin';
     try {
       const { data: p } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
       if (p?.role === 'admin') role = 'admin';
@@ -292,6 +293,13 @@ function prettyTier(tier) {
       }
     }
 
+    // Admin bypass: skip tier and entitlement checks — never redirect to upgrade/coming-soon
+    if (role === 'admin' && calculatorUrl) {
+      calculatorFrame.src = calculatorUrl;
+      loading.style.display = 'none';
+      calculatorFrame.classList.add('show');
+      return;
+    }
     // Check tier access (or add-on subscription)
     let hasAccess = canAccess(userTier, requiredTier);
     if (!hasAccess && toolId) {

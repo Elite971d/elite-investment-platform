@@ -129,6 +129,16 @@ export async function runAuthGuard(options = {}) {
     console.warn('[dealcheck/auth-guard] no profile in profiles or member_profiles');
   }
 
+  // Admin bypass: skip tier/entitlement checks — never redirect to pricing or coming-soon
+  if (role === 'admin') {
+    return {
+      allowed: true,
+      user: session.user,
+      profile,
+      tier: 'admin'
+    };
+  }
+
   if (requestedTool) {
     const requiredTier = TOOL_ACCESS[requestedTool];
     if (!requiredTier) {

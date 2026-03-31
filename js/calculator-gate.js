@@ -206,6 +206,12 @@ export async function runCalculatorGate(toolId, options = {}) {
   } catch (_) {}
   tier = tier || 'guest';
 
+  // Admin bypass: skip tier/entitlement checks — never redirect to pricing or coming-soon
+  if (role === 'admin') {
+    trackCalculatorAccess(true, { tier: 'admin' });
+    return { allowed: true, user: session.user, tier: 'admin' };
+  }
+
   // TEMP: Auth debug - remove after production validation
   if (typeof console !== 'undefined' && console.log) {
     console.log('[ESN-Auth] Auth User:', user?.id, user?.email);
