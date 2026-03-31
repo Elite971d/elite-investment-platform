@@ -357,7 +357,7 @@ z-index: 9999;
 <script type="module">
 // Single shared Supabase client (invest + dealcheck + Vercel + static)
 const { getSupabase } = await import('./js/supabase-auth-cookies.js');
-const { getMemberTools, getToolPath } = await import('./js/tools-config.js');
+const { getMemberTools } = await import('./js/tools-config.js');
 const { getTierPaymentLink, getToolAddonPaymentLink, TOOL_ADDONS } = await import('./js/tier-config.js');
 const { getUserEntitlements } = await import('./js/entitlements.js');
 const { track } = await import('./js/analytics.js');
@@ -400,35 +400,57 @@ function hasToolAccess(tool) {
   return !!map[tool];
 }
 
+function routeTool(tool, base) {
+  const htmlTools = [
+    "brrrr",
+    "dealcheck",
+    "investorbuy-box",
+    "pwt",
+    "commercial",
+    "offer",
+    "profitsplit",
+    "rehabtracker",
+    "rehab",
+    "wholesale"
+  ];
+
+  const folderTools = [
+    "rehab-expenses",
+    "materials.elitesolutionsnetwork.com",
+    "trade.elitesolutionsnetwork.com",
+    "windows.elitesolutionsnetwork.com"
+  ];
+
+  if (htmlTools.includes(tool)) {
+    const htmlName = tool === "rehab" ? "rehabtracker" : tool;
+    window.location.href = base + htmlName + ".html";
+    return;
+  }
+
+  if (folderTools.includes(tool)) {
+    window.location.href = base + tool + "/";
+    return;
+  }
+
+  console.error("Tool not found:", tool);
+}
+
 function openTool(tool) {
   const role = window.currentUserRole || "user";
+
   const base = "https://dealcheck.elitesolutionsnetwork.com/tools/";
-  const externalTools = {
-    windows: "https://windows.elitesolutionsnetwork.com",
-    trade: "https://trade.elitesolutionsnetwork.com",
-    materials: "https://materials.elitesolutionsnetwork.com/rehab-expenses"
-  };
 
-  // Admin full access: always route to hosted tool page.
   if (role === "admin") {
-    const path = getToolPath(tool) || (tool + ".html");
-    window.location.href = base + path;
+    routeTool(tool, base);
     return;
   }
 
-  if (externalTools[tool]) {
-    window.location.href = externalTools[tool];
-    return;
-  }
-
-  // Non-admin logic: preserve existing access restrictions.
   if (!hasToolAccess(tool)) {
     window.location.href = "/coming-soon.html";
     return;
   }
 
-  const path = getToolPath(tool) || (tool + ".html");
-  window.location.href = base + path;
+  routeTool(tool, base);
 }
 
 function openExternalTool(url) {
@@ -447,9 +469,10 @@ function renderAdminToolsSection() {
   );
 
   const adminTools = [
-    { name: 'Rehab Expenses', url: 'https://materials.elitesolutionsnetwork.com/rehab-expenses' },
-    { name: 'Trade Calculator', url: 'https://trade.elitesolutionsnetwork.com' },
-    { name: 'Windows Calculator', url: 'https://windows.elitesolutionsnetwork.com' },
+    { name: 'Rehab Expenses', tool: 'rehab-expenses' },
+    { name: 'Materials Hub', tool: 'materials.elitesolutionsnetwork.com' },
+    { name: 'Trade Calculator', tool: 'trade.elitesolutionsnetwork.com' },
+    { name: 'Windows Calculator', tool: 'windows.elitesolutionsnetwork.com' },
     { name: 'Investor Buy Box', tool: 'investorbuy-box' },
     { name: 'Profit Split', tool: 'profitsplit' },
     { name: 'Rehab Tracker', tool: 'rehabtracker' }
@@ -461,9 +484,7 @@ function renderAdminToolsSection() {
   adminTools.forEach(function (tool) {
     const card = document.createElement('div');
     card.className = 'card';
-    const onClick = tool.tool
-      ? "openTool('" + tool.tool + "')"
-      : "openExternalTool('" + tool.url + "')";
+    const onClick = "openTool('" + tool.tool + "')";
     card.innerHTML = '<h3>' + tool.name + '</h3>' +
       '<div class="tool-actions">' +
       '<button class="tool-link" type="button" onclick="' + onClick + '">Open Tool</button>' +
