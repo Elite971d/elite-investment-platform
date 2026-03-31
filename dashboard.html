@@ -293,6 +293,14 @@ z-index: 9999;
     </div>
     <div class="grid" id="toolsGrid"></div>
 
+    <div id="admin-tools-section" style="display:none; margin-top:16px;">
+      <div class="card">
+        <h2 style="margin:0;">Admin Tools</h2>
+        <p style="margin-top:8px; color:var(--muted);">Additional external tools for admin access.</p>
+        <div class="grid" id="adminToolsGrid" style="margin-top:14px;"></div>
+      </div>
+    </div>
+
     <div class="upgrade" id="upgradeBox" style="display:none;">
       <div class="left">
         <strong>Unlock more tools</strong><br>
@@ -389,8 +397,44 @@ function canAccess(userTier, minTier) {
 
 function openTool(tool) {
   const path = getToolPath(tool) || (tool + '.html');
-  const toolPath = '/tools/' + path;
-  window.location.href = toolPath;
+  window.location.href = '/tools/' + path;
+}
+
+function openExternalTool(url) {
+  window.location.href = url;
+}
+window.openExternalTool = openExternalTool;
+
+function renderAdminToolsSection() {
+  const adminSection = document.getElementById('admin-tools-section');
+  const adminGrid = document.getElementById('adminToolsGrid');
+  if (!adminSection || !adminGrid) return;
+
+  const existingToolNames = new Set(
+    TOOLS.map(function (tool) { return String(tool.name || '').trim().toLowerCase(); })
+  );
+
+  const adminTools = [
+    { name: 'Rehab Expenses', url: 'https://materials.elitesolutionsnetwork.com/rehab-expenses' },
+    { name: 'Trade Calculator', url: 'https://trade.elitesolutionsnetwork.com' },
+    { name: 'Windows Calculator', url: 'https://windows.elitesolutionsnetwork.com' },
+    { name: 'Investor Buy Box', url: 'https://dealcheck.elitesolutionsnetwork.com/tools/investorbuy-box.html' },
+    { name: 'Profit Split', url: 'https://dealcheck.elitesolutionsnetwork.com/tools/profitsplit.html' },
+    { name: 'Rehab Tracker', url: 'https://dealcheck.elitesolutionsnetwork.com/tools/rehabtracker.html' }
+  ].filter(function (tool) {
+    return !existingToolNames.has(tool.name.toLowerCase());
+  });
+
+  adminGrid.innerHTML = '';
+  adminTools.forEach(function (tool) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h3>' + tool.name + '</h3>' +
+      '<div class="tool-actions">' +
+      '<button class="tool-link" type="button" onclick="openExternalTool(\'' + tool.url + '\')">Open Tool</button>' +
+      '</div>';
+    adminGrid.appendChild(card);
+  });
 }
 
 function unlockAllTools() {
@@ -554,11 +598,13 @@ function initTabs() {
   if (!session) return;
   
   const user = session.user;
+  const userRole = user?.user_metadata?.role || "user";
   document.getElementById('userEmail').textContent = user.email;
   document.getElementById('accountEmail').textContent = user.email;
   
   const { data: profile } = await getUserProfile(user.id);
-  let role = user?.user_metadata?.role ?? user?.app_metadata?.role ?? 'user';
+  let role = userRole;
+  if (role !== 'admin' && user?.app_metadata?.role === 'admin') role = 'admin';
   if (profile?.role === 'admin') role = 'admin';
   // Admin override (failsafe): email === admin@elitesolutionsnetwork.com → always admin, unlock all tools
   if (user?.email?.toLowerCase() === 'admin@elitesolutionsnetwork.com') {
@@ -577,6 +623,8 @@ function initTabs() {
 
   if (role === 'admin') {
     document.getElementById('adminLink').style.display = 'inline-flex';
+    renderAdminToolsSection();
+    document.getElementById('admin-tools-section').style.display = 'block';
   }
 
   // Auth debug: user object and role for session/tool verification
@@ -719,6 +767,11 @@ function initTabs() {
       e.preventDefault();
       const tool = btn.dataset.tool || btn.dataset.toolId;
       if (tool) {
+        // Admin bypass: skip tier/entitlement checks and any coming-soon redirects
+        if (role === 'admin') {
+          openTool(tool);
+          return;
+        }
         logToolUsage(user.id, tool).catch(function () {});
         openTool(tool);
       }
