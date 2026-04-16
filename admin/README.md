@@ -385,7 +385,6 @@ CREATE POLICY "Service role can insert audit_log"
 
 For issues or questions:
 - Email: support@elitesolutionsnetwork.com
-- Phone: 214-800-9779
 
 ## License
 

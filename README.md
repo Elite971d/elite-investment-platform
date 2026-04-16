@@ -258,7 +258,6 @@ EXPIRY_FROM_EMAIL=noreply@yourdomain.com
 
 For issues or questions:
 - Email: support@elitesolutionsnetwork.com
-- Phone: 214-800-9779
 
 ## 📄 License
 

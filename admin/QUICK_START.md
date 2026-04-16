@@ -193,7 +193,6 @@ UPDATE profiles SET role = 'admin' WHERE email = 'your@email.com';
 Need help?
 
 - **Email:** support@elitesolutionsnetwork.com
-- **Phone:** 214-800-9779
 - **Docs:** See README.md in `/admin` folder
 
 ## 🔗 Related Files
